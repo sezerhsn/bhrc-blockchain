@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+ecdsa
+pycryptodome
+websockets
+pydantic
+pytest
+pytest-asyncio
+pytest-cov
+

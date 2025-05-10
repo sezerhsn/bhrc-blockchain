@@ -1,0 +1,15 @@
+# config.py
+BLOCK_REWARD = 64  # BHRC
+
+class Config:
+    INITIAL_DIFFICULTY = "0000"
+    TRANSACTION_FEE_PERCENTAGE = 0.001
+    MIN_TRANSACTION_FEE = 0.0001
+    MAX_BLOCK_SIZE = 1453000  # byte
+    TARGET_TIME_PER_BLOCK = 3.5 * 60  # saniye
+    TOTAL_SUPPLY = 64000000  # BHRC
+    CHAIN_DB_PATH = "bhrc_blockchain.db"
+    DIFFICULTY_ADJUSTMENT_INTERVAL = 5760  # blok sayısı
+    INITIAL_BLOCK_REWARD = 64.0
+    HALVING_INTERVAL = 210000  # Her 210,000 blokta ödül yarıya düşer
+

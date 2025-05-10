@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  bhrc_node:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./wallets:/app/wallets
+      - ./bhrc_blockchain.db:/app/bhrc_blockchain.db
+    restart: unless-stopped
+
