@@ -1,0 +1,84 @@
+{% extends "panel/overview.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>🖼️ NFT Paneli</h2>
+
+  <!-- Mint Formu -->
+  <div class="mt-5">
+    <h5>🎨 Yeni NFT Oluştur</h5>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <input class="form-control" id="nftName" placeholder="NFT Adı">
+      </div>
+      <div class="col-md-4">
+        <input class="form-control" id="nftURI" placeholder="IPFS veya Görsel Linki">
+      </div>
+      <div class="col-md-4">
+        <textarea class="form-control" id="nftDesc" placeholder="Açıklama"></textarea>
+      </div>
+      <div class="col-md-2 mt-2">
+        <button class="btn btn-success w-100" onclick="mintNFT()">Mint Et</button>
+      </div>
+    </div>
+    <pre class="bg-light p-2 mt-3 rounded" id="mintResult">Henüz işlem yapılmadı.</pre>
+  </div>
+
+  <!-- NFT Listeleme -->
+  <div class="mt-5">
+    <h5>👤 Sahip Olduğum NFT'ler</h5>
+    <button class="btn btn-outline-secondary mb-3" onclick="listMyNFTs()">Listele</button>
+    <div class="row" id="nftList"></div>
+  </div>
+</div>
+
+<script>
+const token = localStorage.getItem("access_token");
+if (!token) window.location.href = "/panel/login";
+
+async function getAddress() {
+  const res = await fetch("/wallet/address", {
+    headers: { Authorization: token }
+  });
+  return (await res.json()).address;
+}
+
+async function mintNFT() {
+  const name = document.getElementById("nftName").value;
+  const description = document.getElementById("nftDesc").value;
+  const uri = document.getElementById("nftURI").value;
+
+  const res = await fetch("/nft/mint", {
+    method: "POST",
+    headers: {
+      Authorization: token,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ name, description, uri })
+  });
+
+  const data = await res.json();
+  document.getElementById("mintResult").textContent = JSON.stringify(data, null, 2);
+}
+
+async function listMyNFTs() {
+  const address = await getAddress();
+  const res = await fetch(`/nft/owner/${address}`);
+  const nfts = await res.json();
+
+  document.getElementById("nftList").innerHTML = nfts.map(nft => `
+    <div class="col-md-4">
+      <div class="card mb-3 shadow-sm">
+        ${nft.uri ? `<img src="${nft.uri}" class="card-img-top" style="height:200px; object-fit:cover;">` : ''}
+        <div class="card-body">
+          <h6 class="card-title">${nft.name}</h6>
+          <p class="card-text small">${nft.description}</p>
+          <p class="card-text"><small class="text-muted">Token ID: ${nft.token_id}</small></p>
+        </div>
+      </div>
+    </div>
+  `).join("");
+}
+</script>
+{% endblock %}
+

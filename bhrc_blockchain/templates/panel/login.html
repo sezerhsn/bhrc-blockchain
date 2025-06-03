@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>BHRC Giriş Paneli</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f3f3f3;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .login-box {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    h2 {
+      text-align: center;
+    }
+    input {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 1rem;
+    }
+    button {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 1rem;
+      background: #4caf50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h2>🔐 BHRC Panel Girişi</h2>
+    <form id="loginForm">
+      <input type="text" name="username" placeholder="Kullanıcı adı" required />
+      <input type="password" name="password" placeholder="Şifre" required />
+      <button type="submit">Giriş Yap</button>
+    </form>
+    <div id="errorBox" class="error"></div>
+  </div>
+
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const formData = new FormData(e.target);
+
+      const res = await fetch("/auth/token", {
+        method: "POST",
+        body: formData,
+        credentials: "include"  // 🍪 Cookie gönder/al
+      });
+
+      if (res.ok) {
+        window.location.href = "/panel/status";
+      } else {
+        document.getElementById("errorBox").textContent = "Giriş başarısız!";
+      }
+    });
+  </script>
+</body>
+</html>
+

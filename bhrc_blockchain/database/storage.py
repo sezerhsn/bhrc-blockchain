@@ -12,7 +12,6 @@ class SQLiteDataStore:
     def _create_tables(self):
         cursor = self.connection.cursor()
 
-        # Blocks tablosu
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS blocks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,7 +28,6 @@ class SQLiteDataStore:
         )
         """)
 
-        # Transactions tablosu
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,7 +49,6 @@ class SQLiteDataStore:
         )
         """)
 
-        # UTXO tablosu
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS utxos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,61 +62,15 @@ class SQLiteDataStore:
 
         self.connection.commit()
 
-    def save_block(self, block):
-        cursor = self.connection.cursor()
-
-        # Blok verisi
-        cursor.execute("""
-        INSERT INTO blocks (
-            index_num, block_hash, previous_hash, timestamp,
-            miner_address, merkle_root, nonce, version, virtual_size, transactions
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            block["index"],
-            block["block_hash"],
-            block["previous_hash"],
-            block["timestamp"],
-            block["miner_address"],
-            block["merkle_root"],
-            block["nonce"],
-            block["version"],
-            block["virtual_size"],
-            json.dumps(block["transactions"])  # 🔁 işlemleri JSON olarak sakla
-        ))
-
-        # İşlemler
-        for tx in block["transactions"]:
-            cursor.execute("""
-            INSERT INTO transactions (
-                txid, sender, recipient, amount, fee,
-                message, note, type, locktime, time,
-                script_sig, public_key, script_pubkey, status, block_index
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                tx.get("txid"),
-                tx.get("sender"),
-                tx.get("recipient"),
-                tx.get("amount"),
-                tx.get("fee"),
-                tx.get("message"),
-                tx.get("note"),
-                tx.get("type"),
-                tx.get("locktime"),
-                tx.get("time"),
-                tx.get("script_sig"),
-                tx.get("public_key"),
-                tx.get("script_pubkey"),
-                tx.get("status"),
-                block["index"]
-            ))
-
-        self.connection.commit()
-
     def fetch_all_blocks(self):
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM blocks ORDER BY index_num ASC")
-        columns = [desc[0] for desc in cursor.description]
-        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+        with self.connection:
+            rows = self.connection.execute("SELECT * FROM blocks ORDER BY index_num ASC").fetchall()
+            blocks = []
+            for row in rows:
+                block = dict(zip(row.keys(), row))
+                block["index"] = block.pop("index_num")
+                blocks.append(block)
+            return blocks
 
     def save_utxos(self, txid, outputs):
         cursor = self.connection.cursor()
@@ -127,7 +78,7 @@ class SQLiteDataStore:
             cursor.execute("""
             INSERT INTO utxos (txid, output_index, address, amount, spent)
             VALUES (?, ?, ?, ?, 0)
-            """, (txid, idx, out["recipient"], out["amount"]))
+            """, (txid, idx, out["address"], out["amount"]))
         self.connection.commit()
 
     def spend_utxos(self, txid_inputs):
@@ -142,25 +93,33 @@ class SQLiteDataStore:
     def get_unspent_utxos(self, address):
         cursor = self.connection.cursor()
         cursor.execute("""
-            SELECT id, txid, output_index, recipient, amount FROM utxos
-            WHERE recipient=? AND spent=0
+            SELECT id, txid, output_index, address, amount FROM utxos
+            WHERE address=? AND spent=0
         """, (address,))
         rows = cursor.fetchall()
-
         utxos = []
         for row in rows:
             txid = row[1]
             if txid.startswith("GENESIS_TXID"):
-                continue  # Bu UTXO asla harcanamaz
+                continue
             utxos.append(row)
-
         return utxos
 
     def apply_utxo_changes(self, transactions: List[dict]):
-        for tx in transactions:
-            if tx["type"] != "coinbase":
-                self.spend_utxos(tx["inputs"])
-            self.save_utxos(tx["txid"], tx["outputs"])
+        with self.connection:
+            for tx in transactions:
+                if tx["type"] != "coinbase":
+                    for utxo in tx["inputs"]:
+                        self.connection.execute("""
+                            UPDATE utxos SET spent = 1
+                            WHERE txid = ? AND output_index = ?
+                        """, (utxo["txid"], utxo["output_index"]))
+
+                for idx, out in enumerate(tx["outputs"]):
+                    self.connection.execute("""
+                        INSERT INTO utxos (txid, output_index, address, amount, spent)
+                        VALUES (?, ?, ?, ?, 0)
+                    """, (tx["txid"], idx, out["recipient"], out["amount"]))
 
     def close(self):
         self.connection.close()
@@ -169,24 +128,13 @@ class SQLiteDataStore:
         cursor = self.connection.cursor()
         cursor.execute("SELECT txid, output_index, address, amount FROM utxos WHERE spent=0")
         rows = cursor.fetchall()
-
         result = {}
         for txid, output_index, address, amount in rows:
             if txid.startswith("GENESIS_TXID"):
-                continue  # Bu UTXO harcanamaz, dahil edilmesin
+                continue
             result[(txid, output_index)] = {
                 "recipient": address,
                 "amount": amount
             }
-
         return result
 
-    def fetch_all_blocks(self):
-        with self.connection:
-            rows = self.connection.execute("SELECT * FROM blocks ORDER BY index_num ASC").fetchall()
-            blocks = []
-            for row in rows:
-                block = dict(zip(row.keys(), row))
-                block["index"] = block.pop("index_num")  # ✅ normalize et
-                blocks.append(block)
-            return blocks

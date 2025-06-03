@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>BHRC Bildirim Testi</title>
+  <style>
+    body { font-family: sans-serif; background: #f9f9f9; padding: 2rem; }
+    .box { max-width: 600px; margin: auto; background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
+    h2 { text-align: center; }
+    pre { background: #eee; padding: 1rem; height: 400px; overflow-y: scroll; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+<div class="box">
+  <h2>🔔 BHRC WebSocket Bildirimleri</h2>
+  <pre id="logBox">Bağlantı bekleniyor...</pre>
+</div>
+
+<script>
+const ws = new WebSocket("ws://157.245.78.23:80");
+const logBox = document.getElementById("logBox");
+
+ws.onopen = () => {
+  logBox.textContent = "✅ WebSocket bağlantısı kuruldu.\n\n";
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  logBox.textContent += JSON.stringify(data, null, 2) + "\n\n";
+  logBox.scrollTop = logBox.scrollHeight;
+};
+
+ws.onerror = () => {
+  logBox.textContent += "⚠️ Hata oluştu.\n";
+};
+
+ws.onclose = () => {
+  logBox.textContent += "❌ Bağlantı kapandı.\n";
+};
+</script>
+</body>
+</html>
+

@@ -1,0 +1,126 @@
+{% extends "panel/overview.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">📊 BHRC Anasayfa Paneli</h2>
+
+  <!-- Zincir Özeti -->
+  <div class="row g-3">
+    <div class="col-md-3" id="summaryCards"></div>
+  </div>
+
+  <!-- Son Blok Bilgisi -->
+  <div class="mt-5">
+    <h4>🧱 Son Blok Özeti</h4>
+    <ul class="list-group" id="lastBlockDetails"></ul>
+  </div>
+
+  <!-- Grafik -->
+  <div class="mt-5">
+    <h4>📈 Blok Büyüklüğü ve İşlem Sayısı (Son 10 Blok)</h4>
+    <canvas id="blockChart" height="100"></canvas>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+async function loadStatus() {
+  const res = await fetch("/panel/status-data", { credentials: "include" });
+
+  if (!res.ok) {
+    document.getElementById("summaryCards").innerHTML = "<p>🛑 Yetkilendirme başarısız.</p>";
+    return;
+  }
+
+  const data = await res.json();
+
+  // Zincir Özeti Kartları
+  const cards = [
+    { label: "Toplam Blok", value: data.total_blocks },
+    { label: "Toplam İşlem", value: data.total_transactions },
+    { label: "Aktif Cüzdan", value: data.unique_addresses },
+    { label: "Token Arzı", value: data.total_supply },
+    { label: "Toplam Token", value: data.total_tokens },
+    { label: "Toplam NFT", value: data.total_nfts },
+    { label: "Mempool", value: data.mempool_size },
+    { label: "Aktif Peer", value: data.peer_count },
+  ];
+
+  document.getElementById("summaryCards").innerHTML = cards.map(c => `
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <h6 class="card-title text-muted">${c.label}</h6>
+          <h4 class="fw-bold">${c.value}</h4>
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  // Son Blok Bilgileri
+  document.getElementById("lastBlockDetails").innerHTML = `
+    <li class="list-group-item"><b>Son Blok Hash:</b> <code>${data.last_block_hash}</code></li>
+    <li class="list-group-item"><b>Son Blok Zamanı:</b> ${data.latest_timestamp}</li>
+    <li class="list-group-item"><b>Ağ Zorluğu:</b> ${data.difficulty}</li>
+  `;
+
+  // Grafik
+  const chartData = {
+    labels: data.block_labels,
+    datasets: [
+      {
+        label: 'Blok Boyutu (byte)',
+        data: data.block_sizes,
+        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        yAxisID: 'y',
+      },
+      {
+        label: 'İşlem Sayısı',
+        data: data.block_tx_counts,
+        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+        yAxisID: 'y1',
+      }
+    ]
+  };
+
+  const chartConfig = {
+    type: 'bar',
+    data: chartData,
+    options: {
+      responsive: true,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      stacked: false,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Son 10 Blokta Boyut ve İşlem Sayısı'
+        }
+      },
+      scales: {
+        y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          title: { display: true, text: 'Boyut (byte)' }
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: 'İşlem Sayısı' }
+        }
+      }
+    },
+  };
+
+  new Chart(document.getElementById('blockChart'), chartConfig);
+}
+
+loadStatus();
+</script>
+{% endblock %}
+

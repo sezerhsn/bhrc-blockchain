@@ -1,0 +1,92 @@
+{% extends "panel/overview.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>🪙 Token Paneli</h2>
+
+  <!-- Token Bakiyesi -->
+  <div class="mt-5">
+    <h5>🔍 Token Bakiyesi</h5>
+    <div class="row g-2">
+      <div class="col-md-6">
+        <input type="text" class="form-control" id="tokenSymbol" placeholder="Token Sembolü (örn. ABC)">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-primary w-100" onclick="getTokenBalance()">Getir</button>
+      </div>
+    </div>
+    <pre id="balanceOutput" class="bg-light p-2 rounded mt-2">Henüz sorgulanmadı.</pre>
+  </div>
+
+  <!-- Token Transfer -->
+  <div class="mt-5">
+    <h5>💸 Token Transfer</h5>
+    <div class="row g-2">
+      <div class="col-md-4">
+        <input type="text" class="form-control" id="transferTo" placeholder="Alıcı xBHR adresi">
+      </div>
+      <div class="col-md-2">
+        <input type="text" class="form-control" id="transferSymbol" placeholder="Sembol">
+      </div>
+      <div class="col-md-2">
+        <input type="number" class="form-control" id="transferAmount" placeholder="Miktar">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-success w-100" onclick="transferToken()">Gönder</button>
+      </div>
+    </div>
+    <pre id="transferResult" class="bg-light p-2 rounded mt-2"></pre>
+  </div>
+
+  <!-- Token Yak -->
+  <div class="mt-5">
+    <h5>🔥 Token Yak</h5>
+    <div class="row g-2">
+      <div class="col-md-3">
+        <input type="text" class="form-control" id="burnSymbol" placeholder="Sembol">
+      </div>
+      <div class="col-md-3">
+        <input type="number" class="form-control" id="burnAmount" placeholder="Miktar">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-danger w-100" onclick="burnToken()">Yak</button>
+      </div>
+    </div>
+    <pre id="burnResult" class="bg-light p-2 rounded mt-2"></pre>
+  </div>
+
+  <!-- Yeni Token Deploy -->
+  <div class="mt-5">
+    <h5>🚀 Yeni Token Deploy</h5>
+    <div class="row g-2">
+      <div class="col-md-3"><input class="form-control" id="deployName" placeholder="Token Adı"></div>
+      <div class="col-md-2"><input class="form-control" id="deploySymbol" placeholder="Sembol"></div>
+      <div class="col-md-2"><input class="form-control" id="deploySupply" placeholder="Toplam Arz"></div>
+      <div class="col-md-2"><input class="form-control" id="deployDecimals" placeholder="Desimal"></div>
+      <div class="col-md-2">
+        <button class="btn btn-dark w-100" onclick="deployToken()">Deploy Et</button>
+      </div>
+    </div>
+    <pre id="deployResult" class="bg-light p-2 rounded mt-2"></pre>
+  </div>
+
+  <!-- Token Geçmişi -->
+  <div class="mt-5">
+    <h5>📜 Token İşlem Geçmişi</h5>
+    <div class="row g-2">
+      <div class="col-md-6">
+        <input type="text" class="form-control" id="symbolQuery" placeholder="Token sembolü (örn. ABC)">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-outline-secondary w-100" onclick="fetchTokenHistory()">Sorgula</button>
+      </div>
+    </div>
+    <pre id="symbolResult" class="bg-light p-2 rounded mt-2">Henüz sorgulanmadı.</pre>
+  </div>
+</div>
+
+<script>
+// Aynı JS içeriği burada korunur (getAddress, getTokenBalance, transferToken, burnToken, deployToken, fetchTokenHistory)
+</script>
+{% endblock %}
+

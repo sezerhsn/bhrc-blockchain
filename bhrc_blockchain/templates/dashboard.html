@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>BHRC Dashboard</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #f2f2f2;
+            padding: 2rem;
+        }
+        .dashboard {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .stat {
+            font-size: 1.2rem;
+            margin: 1rem 0;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1>📊 BHRC Zincir Durumu</h1>
+        <div class="stat"><span>Toplam Blok:</span><span id="total_blocks">...</span></div>
+        <div class="stat"><span>Toplam İşlem:</span><span id="total_transactions">...</span></div>
+        <div class="stat"><span>Mempool Boyutu:</span><span id="mempool_size">...</span></div>
+        <div class="stat"><span>Aktif Peer:</span><span id="active_peers">...</span></div>
+        <div class="stat"><span>Toplam NFT:</span><span id="total_nfts">...</span></div>
+        <div class="stat"><span>Toplam Token:</span><span id="total_tokens">...</span></div>
+    </div>
+
+    <script>
+        async function fetchDashboard() {
+            const res = await fetch("/dashboard/data");
+            const data = await res.json();
+            document.getElementById("total_blocks").textContent = data.total_blocks;
+            document.getElementById("total_transactions").textContent = data.total_transactions;
+            document.getElementById("mempool_size").textContent = data.mempool_size;
+            document.getElementById("active_peers").textContent = data.active_peers;
+            document.getElementById("total_nfts").textContent = data.total_nfts;
+            document.getElementById("total_tokens").textContent = data.total_tokens;
+        }
+
+        fetchDashboard();
+        setInterval(fetchDashboard, 5000);  // 5 saniyede bir güncelle
+    </script>
+</body>
+</html>
+

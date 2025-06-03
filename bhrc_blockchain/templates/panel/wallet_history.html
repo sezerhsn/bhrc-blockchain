@@ -1,0 +1,39 @@
+{% extends "panel/overview.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>📂 {{ user }} Cüzdan Geçmişi</h2>
+
+  {% if txs %}
+    <table class="table table-striped mt-3">
+      <thead>
+        <tr>
+          <th>Blok #</th>
+          <th>TxID</th>
+          <th>Tip</th>
+          <th>Gönderen</th>
+          <th>Alıcı</th>
+          <th>Tutar</th>
+          <th>Zaman</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tx in txs %}
+          <tr>
+            <td>{{ tx.block_index }}</td>
+            <td><a href="/panel/tx/{{ tx.txid }}">{{ tx.txid }}</a></td>
+            <td>{{ tx.type }}</td>
+            <td>{{ tx.sender }}</td>
+            <td>{{ tx.recipient }}</td>
+            <td>{{ tx.amount }}</td>
+            <td>{{ tx.time }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="alert alert-info mt-4">Bu cüzdana ait işlem geçmişi bulunamadı.</div>
+  {% endif %}
+</div>
+{% endblock %}
+

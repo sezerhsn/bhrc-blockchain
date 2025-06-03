@@ -1,7 +1,13 @@
-# utils.py
+import os
+import hashlib
 import time
 import random
 from datetime import datetime
+from fastapi.templating import Jinja2Templates
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 def get_readable_time(timestamp=None):
     if timestamp is None:
@@ -20,8 +26,12 @@ def get_random_quote():
     return random.choice(quotes)
 
 def generate_address(public_key: str) -> str:
-    import hashlib
     prefix = "xBHR"
     hashed = hashlib.sha256(public_key.encode()).hexdigest()
     return prefix + hashed[:60]
+
+generate_address_from_public_key = generate_address
+
+def render_template(template_name: str, request, context: dict):
+    return templates.TemplateResponse(template_name, {"request": request, **context})
 

@@ -1,0 +1,77 @@
+{% extends "panel/overview.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="text-danger">⚙️ Admin Paneli</h2>
+
+  <p>Yalnızca admin kullanıcılar bu sayfaya erişebilir.</p>
+
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <button onclick="resetChain()" class="btn btn-danger w-100 mb-2">🧹 Zinciri Sıfırla</button>
+    </div>
+    <div class="col-md-6">
+      <button onclick="addFakeBlock()" class="btn btn-warning w-100 mb-2">➕ Sahte Blok Ekle</button>
+    </div>
+    <div class="col-md-6">
+      <button onclick="clearMempool()" class="btn btn-secondary w-100 mb-2">🧪 Mempool'u Boşalt</button>
+    </div>
+    <div class="col-md-6">
+      <button onclick="loadStats()" class="btn btn-info w-100 mb-2">📊 Ağ İstatistikleri</button>
+    </div>
+  </div>
+
+  <div id="adminResult" class="mt-4"></div>
+</div>
+
+<script>
+const token = localStorage.getItem("access_token");
+
+async function adminPost(endpoint) {
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Authorization": token,
+      "Content-Type": "application/json"
+    }
+  });
+  return res.json();
+}
+
+async function resetChain() {
+  const data = await adminPost("/admin/reset-chain");
+  showResult(data.message || JSON.stringify(data));
+}
+
+async function addFakeBlock() {
+  const data = await adminPost("/admin/add-fake-block");
+  showResult(data.message || JSON.stringify(data));
+}
+
+async function clearMempool() {
+  const data = await adminPost("/admin/clear-mempool");
+  showResult(data.message || JSON.stringify(data));
+}
+
+async function loadStats() {
+  const res = await fetch("/admin/network-stats", {
+    headers: {
+      "Authorization": token
+    }
+  });
+  const data = await res.json();
+  showResult("📊 Ağ Durumu:<br>" + `
+    <b>Toplam Blok:</b> ${data.total_blocks}<br>
+    <b>Peer Sayısı:</b> ${data.peers}<br>
+    <b>Zorluk:</b> ${data.difficulty}
+  `);
+}
+
+function showResult(msg) {
+  document.getElementById("adminResult").innerHTML = `
+    <div class="alert alert-info">${msg}</div>
+  `;
+}
+</script>
+{% endblock %}
+

@@ -1,68 +1,35 @@
-# api_server.py (GÜNCELLENMİŞ)
-import requests
-import json
-import re
-import asyncio
-from pydantic import BaseModel
-from fastapi import FastAPI, Query
-from typing import List
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.encoders import jsonable_encoder
+from fastapi import FastAPI
+from bhrc_blockchain.api.token_routes import router as token_router
+from bhrc_blockchain.api.chain_routes import router as chain_router
+from bhrc_blockchain.api.wallet_routes import router as wallet_router
+from bhrc_blockchain.api.auth_routes import router as auth_router
+from bhrc_blockchain.api.transaction_routes import router as transaction_router
+from bhrc_blockchain.api.dao_routes import router as dao_router
+from bhrc_blockchain.api.nft_routes import router as nft_router
+from bhrc_blockchain.api.multisig_routes import router as multisig_router
+from bhrc_blockchain.api.panel_routes import router as panel_router
+from bhrc_blockchain.api.contract_routes import router as contract_router
+from bhrc_blockchain.api.admin_routes import router as admin_router
+from bhrc_blockchain.api.state_routes import router as state_router
+from bhrc_blockchain.api.consensus_routes import router as consensus_router
 
-from bhrc_blockchain.core.blockchain import Blockchain
-from bhrc_blockchain.core.transaction import create_transaction
-from bhrc_blockchain.core.token import TokenContract
-from bhrc_blockchain.core.wallet import generate_wallet, MinerWallet
-from bhrc_blockchain.core.mempool import add_transaction_to_mempool, mempool
-from bhrc_blockchain.network.p2p import start_p2p_server, local_blockchain
-
-nodes = set()
 app = FastAPI(title="Behind The Random Coin API")
-blockchain = Blockchain()
-local_blockchain = blockchain
 
-@app.post("/token/deploy")
-def deploy_token(name: str, symbol: str, total_supply: float, decimals: int = 0, creator_private_key: str = Query(...)):
-    try:
-        creator = MinerWallet(private_key=creator_private_key).address
-        token = TokenContract(name=name, symbol=symbol, total_supply=total_supply, decimals=decimals, creator=creator)
-        tx = token.deploy(creator_private_key)
-        tx["status"] = "ready"
-        blockchain.current_transactions.append(tx)
-        return {"message": f"{symbol} token'ı başarıyla deploy edildi.", "txid": tx["txid"]}
-    except Exception as e:
-        return JSONResponse(status_code=400, content={"error": str(e)})
+app.include_router(token_router, tags=["Token"])
+app.include_router(auth_router, prefix="/auth", tags=["Auth"])
+app.include_router(chain_router, tags=["Blockchain"])
+app.include_router(wallet_router, prefix="/wallet", tags=["Wallet"])
+app.include_router(transaction_router, prefix="/transaction", tags=["Transaction"])
+app.include_router(dao_router, prefix="/dao", tags=["DAO"])
+app.include_router(nft_router, prefix="/nft", tags=["NFT"])
+app.include_router(multisig_router, prefix="/multisig", tags=["Multisig"])
+app.include_router(panel_router, tags=["Panel"])
+app.include_router(contract_router, prefix="/contract", tags=["SmartContract"])
+app.include_router(admin_router, tags=["Admin"])
+app.include_router(state_router, prefix="/state", tags=["State"])
+app.include_router(consensus_router, prefix="/consensus", tags=["Consensus"])
 
-class TokenTransferRequest(BaseModel):
-    sender_private_key: str
-    sender: str
-    recipient: str
-    symbol: str
-    amount: float
-
-@app.post("/token/transfer")
-def transfer_token(data: TokenTransferRequest):
-    try:
-        tx = create_transaction(
-            sender=data.sender,
-            recipient=data.recipient,
-            amount=data.amount,
-            message="",
-            note=data.symbol,
-            tx_type="token_transfer",
-            sender_private_key=data.sender_private_key
-        )
-        tx["status"] = "ready"
-        blockchain.current_transactions.append(tx)
-        return {"message": "Token transfer işlemi kuyruğa alındı", "txid": tx["txid"]}
-    except Exception as e:
-        return JSONResponse(status_code=400, content={"error": str(e)})
-
-@app.get("/token/balance")
-def get_token_balance(address: str = Query(...), symbol: str = Query(...)):
-    try:
-        balance = TokenContract.balance_of(address, symbol)
-        return {"address": address, "symbol": symbol, "balance": balance}
-    except Exception as e:
-        return JSONResponse(status_code=400, content={"error": str(e)})
+@app.get("/", tags=["Docs"])
+def root():
+    return {"message": "Behind The Random Coin API → Swagger: /docs"}
 

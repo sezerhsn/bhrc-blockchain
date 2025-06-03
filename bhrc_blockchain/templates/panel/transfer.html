@@ -1,0 +1,51 @@
+{% extends "panel/overview.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>İşlem Oluştur</h2>
+  <form onsubmit="event.preventDefault(); sendTransaction();">
+    <div class="mb-3">
+      <label class="form-label">Alıcı Adresi</label>
+      <input type="text" id="to_address" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Miktar</label>
+      <input type="number" id="amount" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Açıklama (isteğe bağlı)</label>
+      <input type="text" id="message" class="form-control">
+    </div>
+    <button type="submit" class="btn btn-success">Gönder</button>
+  </form>
+
+  <div class="mt-3" id="result"></div>
+</div>
+
+<script>
+  async function sendTransaction() {
+    const token = localStorage.getItem("access_token");
+    const payload = {
+      to_address: document.getElementById("to_address").value,
+      amount: parseFloat(document.getElementById("amount").value),
+      message: document.getElementById("message").value
+    };
+
+    const res = await fetch("/api/transfer", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const out = await res.json();
+    const result = document.getElementById("result");
+    result.innerHTML = res.ok
+      ? `<div class="alert alert-success">✅ ${out.message}</div>`
+      : `<div class="alert alert-danger">🛑 ${out.detail || 'Hata oluştu'}</div>`;
+  }
+</script>
+{% endblock %}
+

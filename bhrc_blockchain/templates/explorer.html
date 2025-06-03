@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BHRC Zincir Gezgini</title>
+    <meta charset="UTF-8" />
+    <style>
+        body { font-family: Arial; background-color: #fffdf5; margin: 20px; }
+        h1 { color: #222; }
+        .block-card {
+            border: 1px solid #ccc;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            background-color: #f7f7f7;
+        }
+        .block-card h2 {
+            margin: 0;
+        }
+        ul.events {
+            list-style: square;
+            margin-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>⛓️ BHRC Blok Zinciri - Son 15 Blok</h1>
+
+    {% for block in chain %}
+    <div class="block-card">
+        <h2>Blok #{{ block.index }}</h2>
+        <p><strong>Madenci:</strong> {{ block.miner_address }}</p>
+        <p><strong>Zaman:</strong> {{ block.readable_time }}</p>
+        <p><strong>İşlem Sayısı:</strong> {{ block.transactions | length }}</p>
+        <p><strong>Merkle Root:</strong> {{ block.merkle_root }}</p>
+        <p><strong>Blok Hash:</strong> {{ block.block_hash }}</p>
+        <p><strong>Önceki Hash:</strong> {{ block.previous_hash }}</p>
+        {% if block.events %}
+        <p><strong>📝 Olaylar:</strong></p>
+        <ul class="events">
+            {% for e in block.events %}
+            <li>{{ e }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    {% endfor %}
+</body>
+</html>
+

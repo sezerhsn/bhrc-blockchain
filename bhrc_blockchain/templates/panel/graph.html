@@ -1,0 +1,66 @@
+{% extends "panel/overview.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="text-center">📊 BHRC Zincir Grafik Paneli</h2>
+
+  <div class="mt-5">
+    <h4>🧱 Blok Bazlı İşlem Sayısı</h4>
+    <canvas id="txChart" height="100"></canvas>
+  </div>
+
+  <div class="mt-5">
+    <h4>📦 İşlem Türü Dağılımı</h4>
+    <canvas id="typeChart" height="100"></canvas>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+async function loadChartData() {
+  const res = await fetch("/dashboard/data/graph", { credentials: "include" });
+  const data = await res.json();
+
+  // Bar Chart - Blok bazlı işlem sayısı
+  new Chart(document.getElementById("txChart"), {
+    type: "bar",
+    data: {
+      labels: data.block_indices,
+      datasets: [{
+        label: "İşlem Sayısı",
+        data: data.tx_counts,
+        backgroundColor: "#4caf50"
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: "Son 20 Bloktaki İşlem Sayısı" }
+      }
+    }
+  });
+
+  // Pie Chart - İşlem türü dağılımı
+  new Chart(document.getElementById("typeChart"), {
+    type: "pie",
+    data: {
+      labels: Object.keys(data.tx_type_counts),
+      datasets: [{
+        data: Object.values(data.tx_type_counts),
+        backgroundColor: ["#4caf50", "#2196f3", "#ff9800", "#e91e63", "#9c27b0"]
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: "İşlem Türlerine Göre Dağılım" }
+      }
+    }
+  });
+}
+
+loadChartData();
+</script>
+{% endblock %}
+

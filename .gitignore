@@ -2,33 +2,34 @@
 # 👜 Cüzdan dosyaları
 # ======================================
 wallets/
+*.json
 
 # ======================================
 # 💾 Veritabanı ve cache dosyaları
 # ======================================
 *.db
-*.json
+mempool_cache.json
+state.json
 *.log
 *.pid
+logs/
 bhrc_blockchain.db
-mempool_cache.json
-+logs/
 
 # ======================================
 # 🧪 Python bytecode, pytest artıkları
 # ======================================
 __pycache__/
 *.pyc
+*.pyo
 .pytest_cache/
 tests/.pytest_cache/
-+*.pyo
 
 # ======================================
 # 📊 Coverage raporları
 # ======================================
 .coverage
 htmlcov/
-+coverage_report.txt
+coverage_report.txt
 
 # ======================================
 # 📦 Python build ve paketleme dosyaları
@@ -40,7 +41,5 @@ build/
 # ======================================
 # 🚫 Geçici ve bilinmeyen dosyalar
 # ======================================
--H
--d
-+*.save
+*.save
 

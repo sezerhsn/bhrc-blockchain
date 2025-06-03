@@ -1,0 +1,126 @@
+{% extends "panel/overview.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>💼 Cüzdan Paneli</h2>
+
+  <!-- Adres ve Bakiye -->
+  <div class="row g-3 mt-4">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h6 class="text-muted">Cüzdan Adresi</h6>
+          <code id="walletAddress">Yükleniyor...</code>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h6 class="text-muted">Bakiye</h6>
+          <h5 class="fw-bold" id="walletBalance">Yükleniyor...</h5>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transfer Formu -->
+  <div class="mt-5">
+    <h4>💸 Transfer Yap</h4>
+    <div class="row g-3">
+      <div class="col-md-5">
+        <input type="text" id="recipient" class="form-control" placeholder="Alıcı xBHR adresi">
+      </div>
+      <div class="col-md-3">
+        <input type="number" id="amount" class="form-control" placeholder="Miktar" step="0.0001">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-success w-100" onclick="sendTransaction()">Gönder</button>
+      </div>
+    </div>
+    <div class="mt-3">
+      <pre id="resultBox" class="bg-light p-2 rounded border">Sonuç burada gösterilecek.</pre>
+    </div>
+  </div>
+
+  <!-- Geçmiş İşlemler -->
+  <div class="mt-5">
+    <h4>📜 Son 10 İşlem</h4>
+    <button class="btn btn-outline-secondary mb-2" onclick="fetchTxHistory()">İşlemleri Getir</button>
+    <div id="historyTable"></div>
+  </div>
+</div>
+
+<script>
+const token = localStorage.getItem("access_token");
+
+if (!token) window.location.href = "/panel/login";
+
+async function getAddress() {
+  const res = await fetch("/wallet/address", {
+    headers: { Authorization: token }
+  });
+  const data = await res.json();
+  return data.address;
+}
+
+async function loadWallet() {
+  const address = await getAddress();
+  document.getElementById("walletAddress").textContent = address;
+
+  const res2 = await fetch(`/wallet/balance?address=${address}`);
+  const bal = await res2.json();
+  document.getElementById("walletBalance").textContent = `${bal.balance} xBHR`;
+}
+
+async function sendTransaction() {
+  const recipient = document.getElementById("recipient").value;
+  const amount = parseFloat(document.getElementById("amount").value);
+  const sender = await getAddress();
+
+  const res = await fetch("/transaction/send", {
+    method: "POST",
+    headers: {
+      Authorization: token,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      sender,
+      recipient,
+      amount,
+      sender_private_key: "mock"
+    })
+  });
+
+  const result = await res.json();
+  document.getElementById("resultBox").textContent = JSON.stringify(result, null, 2);
+}
+
+async function fetchTxHistory() {
+  const address = await getAddress();
+  const res = await fetch(`/explorer/search/advanced?q=${encodeURIComponent(address)}&limit=10&page=1`);
+  const data = await res.json();
+
+  const html = `
+    <table class="table table-bordered">
+      <thead>
+        <tr><th>TxID</th><th>Gönderen</th><th>Alıcı</th><th>Miktar</th><th>Tür</th></tr>
+      </thead>
+      <tbody>
+        ${data.results.map(tx => `
+          <tr>
+            <td><code>${tx.txid.slice(0, 8)}...</code></td>
+            <td>${tx.sender}</td>
+            <td>${tx.recipient}</td>
+            <td>${tx.amount}</td>
+            <td>${tx.type}</td>
+          </tr>`).join("")}
+      </tbody>
+    </table>`;
+  document.getElementById("historyTable").innerHTML = html;
+}
+
+loadWallet();
+</script>
+{% endblock %}
+

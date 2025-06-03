@@ -1,0 +1,43 @@
+{% extends "panel/overview.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>📄 İşlem Detayı</h2>
+
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% elif tx %}
+    <div class="card mb-4">
+      <div class="card-body">
+        <p><strong>TxID:</strong> {{ tx.txid }}</p>
+        <p><strong>Tip:</strong> {{ tx.type }}</p>
+        <p><strong>Gönderen:</strong> {{ tx.sender }}</p>
+        <p><strong>Alıcı:</strong> {{ tx.recipient }}</p>
+        <p><strong>Tutar:</strong> {{ tx.amount }}</p>
+        <p><strong>Blok #:</strong> {{ block_index }}</p>
+        <p><strong>Durum:</strong> {{ tx.status }}</p>
+        <p><strong>Zaman:</strong> {{ tx.time }}</p>
+        <p><strong>Not:</strong> {{ tx.note }}</p>
+        <p><strong>Mesaj:</strong> {{ tx.message }}</p>
+        <hr>
+        <h5>🔐 Script & Output Bilgileri</h5>
+        <p><strong>scriptSig:</strong> {{ tx.script_sig }}</p>
+        <p><strong>scriptPubKey:</strong> {{ tx.script_pubkey }}</p>
+        <p><strong>Locktime:</strong> {{ tx.locktime }}</p>
+
+        {% if tx.outputs %}
+        <div class="mt-3">
+          <strong>Çıktılar:</strong>
+          <ul>
+            {% for out in tx.outputs %}
+              <li>{{ out.amount }} → {{ out.address }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+

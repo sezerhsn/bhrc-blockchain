@@ -1,0 +1,52 @@
+{% extends "panel/overview.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>İşlem Geçmişi</h2>
+  <div class="mb-3">
+    <label class="form-label">Cüzdan Adresi</label>
+    <input type="text" id="walletAddress" class="form-control" placeholder="Adres girin">
+    <button class="btn btn-primary mt-2" onclick="loadHistory()">Getir</button>
+  </div>
+
+  <div id="historyResult" class="mt-4"></div>
+</div>
+
+<script>
+async function loadHistory() {
+  const address = document.getElementById("walletAddress").value;
+  const token = localStorage.getItem("access_token");
+
+  const res = await fetch(`/history/${address}`, {
+    headers: {
+      "Authorization": "Bearer " + token
+    }
+  });
+
+  const out = await res.json();
+  const result = document.getElementById("historyResult");
+
+  if (!res.ok) {
+    result.innerHTML = `<div class="alert alert-danger">🛑 ${out.detail || "İşlem alınamadı"}</div>`;
+    return;
+  }
+
+  const txs = out.data.transactions;
+  if (txs.length === 0) {
+    result.innerHTML = "<p>Hiç işlem bulunamadı.</p>";
+    return;
+  }
+
+  result.innerHTML = `<ul class="list-group">
+    ${txs.map(tx => `
+      <li class="list-group-item">
+        <strong>${tx.sender}</strong> → <strong>${tx.recipient}</strong> <br>
+        💰 ${tx.amount} — ${tx.message || "Mesaj yok"} <br>
+        ⏱️ ${tx.timestamp || "Zaman yok"}
+      </li>
+    `).join("")}
+  </ul>`;
+}
+</script>
+{% endblock %}
+

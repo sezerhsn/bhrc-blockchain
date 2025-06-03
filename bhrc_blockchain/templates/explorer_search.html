@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>BHRC Zincir Arama</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f8f8f8;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      background: #4caf50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    pre {
+      background: #eee;
+      padding: 1rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 BHRC Zincir Arama</h1>
+    <input type="text" id="searchQuery" placeholder="txid, blok hash veya xBHR adres girin...">
+    <button onclick="search()">Ara</button>
+    <pre id="resultBox">Sonuç bekleniyor...</pre>
+  </div>
+
+  <script>
+    async function search() {
+      const query = document.getElementById("searchQuery").value;
+      const res = await fetch(`/explorer/search?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      document.getElementById("resultBox").textContent = JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>BHRC Zincir Explorer</title>
+  <style>
+    body { font-family: sans-serif; background: #f2f2f2; padding: 2rem; }
+    .container { max-width: 1000px; margin: auto; background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
+    h2 { text-align: center; }
+    input, select, button { width: 100%; padding: 0.5rem; margin-top: 0.5rem; }
+    button { background: #2196f3; color: white; border: none; cursor: pointer; }
+    pre { background: #eee; padding: 1rem; white-space: pre-wrap; overflow-x: auto; margin-top: 1rem; }
+    .block-list { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
+    .block-card {
+      background: #fafafa; padding: 1rem; border: 1px solid #ddd;
+      border-left: 5px solid #2196f3; border-radius: 5px; width: 31%;
+    }
+    .block-card h4 { margin: 0 0 0.5rem 0; }
+    .block-card small { color: #666; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>📦 BHRC Zincir Explorer + Gelişmiş Arama</h2>
+
+  <div id="snapshotBox" class="block-list">Snapshot yükleniyor...</div>
+
+  <input type="text" id="q" placeholder="Arama (txid, adres, sembol...)" />
+  <select id="type">
+    <option value="">Tüm İşlem Tipleri</option>
+    <option value="transfer">transfer</option>
+    <option value="token_transfer">token_transfer</option>
+    <option value="token_deploy">token_deploy</option>
+    <option value="burn">burn</option>
+    <option value="mint">mint</option>
+  </select>
+  <input type="number" id="page" value="1" min="1" />
+  <input type="number" id="limit" value="10" min="1" max="100" />
+  <button onclick="search()">Ara</button>
+
+  <pre id="resultsBox">Sonuçlar burada görünecek...</pre>
+</div>
+
+<script>
+async function loadSnapshot() {
+  const res = await fetch("/panel/snapshot");
+  const data = await res.json();
+  const lastBlocks = data.chain.slice(-9).reverse();
+
+  const box = document.getElementById("snapshotBox");
+  box.innerHTML = "";
+
+  lastBlocks.forEach(block => {
+    const div = document.createElement("div");
+    div.className = "block-card";
+    div.innerHTML = `
+      <h4>#${block.index}</h4>
+      <small>Tx: ${block.tx_count} | Miner: ${block.miner}</small><br>
+      <small>Size: ${block.size} | Zaman: ${new Date(block.timestamp * 1000).toLocaleString()}</small><br>
+      <small><code>${block.hash.slice(0, 24)}...</code></small>
+    `;
+    box.appendChild(div);
+  });
+}
+
+async function search() {
+  const q = document.getElementById("q").value;
+  const tx_type = document.getElementById("type").value;
+  const page = document.getElementById("page").value;
+  const limit = document.getElementById("limit").value;
+
+  const params = new URLSearchParams({ q, tx_type, page, limit });
+  const res = await fetch(`/explorer/search/advanced?${params.toString()}`);
+  const data = await res.json();
+  document.getElementById("resultsBox").textContent = JSON.stringify(data, null, 2);
+}
+
+window.onload = loadSnapshot;
+</script>
+</body>
+</html>
+

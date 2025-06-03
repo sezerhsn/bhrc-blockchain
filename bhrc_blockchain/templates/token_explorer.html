@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ token.symbol }} Explorer | Behind The Random Coin</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2b2b2b;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 0.5rem;
+        }
+        .token-info {
+            margin-top: 1rem;
+            margin-bottom: 2rem;
+        }
+        .token-info p {
+            margin: 0.3rem 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ token.name }} ({{ token.symbol }}) Holder Listesi</h1>
+
+        <div class="token-info">
+            <p><strong>Toplam Arz:</strong> {{ token.total_supply }}</p>
+            <p><strong>Desimal:</strong> {{ token.decimals }}</p>
+            <p><strong>Oluşturan Adres:</strong> {{ token.creator }}</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Adres</th>
+                    <th>Bakiye</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for holder in holders %}
+                <tr>
+                    <td>{{ holder.address }}</td>
+                    <td>{{ holder.balance }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
+
