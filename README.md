@@ -10,7 +10,7 @@ cd bhrc_blockchain
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-uvicorn api_server:app --reload --host 0.0.0.0 --port 80
+uvicorn bhrc_blockchain.api.api_server:app --reload --host 0.0.0.0 --port 80
 
 docker build -t bhrc .
 docker run -p 80:80 bhrc
@@ -26,9 +26,9 @@ docker run -p 80:80 bhrc
 | `/dao`         | Oylama, teklif oluşturma         |
 
 python wallet_cli.py create         # Yeni cüzdan oluştur
-python wallet_cli.py balance        # Cüzdan bakiyesi kontrolü
-python wallet_cli.py transfer       # Token gönderimi
-python wallet_cli.py history        # İşlem geçmişi
+python wallet_cli.py load           # Var olan cüzdanı yükle
+python wallet_cli.py verify         # Cüzdanı doğrula
+python wallet_cli.py mnemonic       # Anımsatıcı kodu göster
 
 def execute(context):
     sender = context['sender']
