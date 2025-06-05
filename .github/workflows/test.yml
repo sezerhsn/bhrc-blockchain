@@ -37,3 +37,11 @@ jobs:
         name: htmlcov
         path: htmlcov/
 
+    - name: Coverage Sonucunu Codecov'a Gönder
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        directory: ./coverage
+        flags: unittests
+        verbose: true
+
