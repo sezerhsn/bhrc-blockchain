@@ -48,16 +48,16 @@ def test_consensus_evaluate_accepts_heavier_chain():
         chain_data.append(d)
 
     # 🔍 Log: Zincir JSON çıktısı
-    print("GÖNDERİLEN ZİNCİR JSON:")
-    print(json.dumps(chain_data, indent=2))
+    # print("GÖNDERİLEN ZİNCİR JSON:")
+    # print(json.dumps(chain_data, indent=2))
 
     # 🧪 API isteği
     response = client.post("/consensus/evaluate", json={"chain": chain_data})
 
     # 🔍 Log: API cevabı
-    print("API RESPONSE:")
-    print(response.status_code)
-    print(response.text)
+    # print("API RESPONSE:")
+    # print(response.status_code)
+    # print(response.text)
 
     # ✅ Beklenen: 200 ve başarılı mesaj
     assert response.status_code == 200
