@@ -166,10 +166,6 @@ def dashboard_data():
 def websocket_test(request: Request):
     return templates.TemplateResponse("notifications_test.html", {"request": request})
 
-@router.get("/notifications/subscribe", response_class=HTMLResponse)
-def websocket_subscriber_ui(request: Request):
-    return templates.TemplateResponse("notifications_subscriber.html", {"request": request})
-
 @router.get("/notifications/subscribe", response_class=HTMLResponse, summary="Kişisel adres bildirim arayüzü")
 def websocket_subscriber_ui(request: Request):
     return templates.TemplateResponse("notifications_subscriber.html", {"request": request})
