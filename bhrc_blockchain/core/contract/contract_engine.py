@@ -143,7 +143,7 @@ def execute_script(script_type: str, script: str, context: dict, params: dict = 
 
     return engine_func(script, context, params, timeout_seconds)
 
-def safe_execute_script(script: str, context: dict, params: dict = None) -> dict:
+def safe_execute_script(script: str, context: dict, params: dict = None, version: str = "1.0") -> dict:
     try:
         parsed_ast = ast.parse(script, mode='exec')
 
@@ -168,7 +168,7 @@ def safe_execute_script(script: str, context: dict, params: dict = None) -> dict
             local_context.update(params)
         local_context.update(context)
 
-        logger.info(f"[DEBUG] Running script: {script}")
+        logger.info(f"[DEBUG] Script version: {version}")
         logger.info(f"[DEBUG] With local_context: {local_context}")
 
         exec(compile(parsed_ast, filename="<safe_script>", mode="exec"), {}, local_context)
@@ -295,7 +295,7 @@ class BCLInterpreter:
 
 ENGINE_REGISTRY = {
     "BHRC-Logic-1.0": execute_script_in_subprocess,
-    "BHRC-Logic-1.1": safe_execute_script,
+    "BHRC-Logic-1.1": lambda script, context, params=None, timeout_seconds=2: safe_execute_script(script, context, params, version="1.1"),
     "BCL-1.0": BCLInterpreter().execute
 }
 

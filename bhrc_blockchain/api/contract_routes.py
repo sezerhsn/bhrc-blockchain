@@ -20,11 +20,12 @@ class ContractRequest(BaseModel):
     recipient: str
     amount: float
     script: str
-    timestamp: int
-    nonce: int
-    manifest_hash: str
+    timestamp: int = None
+    nonce: int = None
+    manifest_hash: str = None
+    script_hash: str = None
     signature: str
-    type: str = "BHRC-Logic-1.1"
+    type: str = "BHRC-Logic-1.0"
     message: str = ""
     note: str = ""
     sender_private_key: str
@@ -38,12 +39,24 @@ def submit_contract(
     sender = current_user["sub"]
 
     try:
-        computed_hash = compute_manifest_hash(data.script, data.timestamp, data.nonce)
-        if computed_hash != data.manifest_hash:
-            raise HTTPException(status_code=400, detail="Manifest hash doğrulaması başarısız.")
+        if data.type == "BHRC-Logic-1.1":
+            computed_hash = compute_manifest_hash(data.script, data.timestamp, data.nonce)
+            if computed_hash != data.manifest_hash:
+                raise HTTPException(status_code=400, detail="Manifest hash doğrulaması başarısız.")
+            contract_address = data.manifest_hash
+        else:
+            computed_hash = hashlib.sha256(data.script.encode()).hexdigest()
+            if computed_hash != data.script_hash:
+                raise HTTPException(status_code=400, detail="Script hash doğrulaması başarısız (v1.0).")
+            contract_address = data.script_hash
+
+        if data.type == "BHRC-Logic-1.1":
+            hash_for_signature = data.manifest_hash
+        else:
+            hash_for_signature = data.script_hash
 
         public_key = get_public_key_from_private_key(data.sender_private_key)
-        is_valid = verify_signature(public_key, data.script_hash, data.signature)
+        is_valid = verify_signature(public_key, hash_for_signature, data.signature)
         if not is_valid:
             raise HTTPException(status_code=400, detail="Script imzası geçersiz.")
 
@@ -148,11 +161,12 @@ def get_contract_status(txid: str):
 
 class DeployRequest(BaseModel):
     script: str
-    timestamp: int
-    nonce: int
-    manifest_hash: str
+    timestamp: int = None
+    nonce: int = None
+    manifest_hash: str = None
+    script_hash: str = None
     signature: str
-    type: str = "BHRC-Logic-1.1"
+    type: str = "BHRC-Logic-1.0"
     sender_private_key: str
 
 class CallRequest(BaseModel):
@@ -167,21 +181,36 @@ def deploy_contract(
     sender = current_user["sub"]
 
     try:
-        computed_hash = compute_manifest_hash(data.script, data.timestamp, data.nonce)
-        if computed_hash != data.manifest_hash:
-            raise HTTPException(status_code=400, detail="Manifest hash doğrulaması başarısız.")
+        if data.type == "BHRC-Logic-1.1":
+            computed_hash = compute_manifest_hash(data.script, data.timestamp, data.nonce)
+            if computed_hash != data.manifest_hash:
+                raise HTTPException(status_code=400, detail="Manifest hash doğrulaması başarısız.")
+        else:
+            computed_hash = hashlib.sha256(data.script.encode()).hexdigest()
+            if computed_hash != data.script_hash:
+                raise HTTPException(status_code=400, detail="Script hash doğrulaması başarısız (v1.0).")
+
+        if data.type == "BHRC-Logic-1.1":
+            hash_for_signature = data.manifest_hash
+        else:
+            hash_for_signature = data.script_hash
 
         public_key = get_public_key_from_private_key(data.sender_private_key)
-        is_valid = verify_signature(public_key, data.script_hash, data.signature)
+        is_valid = verify_signature(public_key, hash_for_signature, data.signature)
         if not is_valid:
             raise HTTPException(status_code=400, detail="Script imzası geçersiz.")
 
-        ok = contract_engine.deploy_contract(data.script_hash, data.script)
+        if data.type == "BHRC-Logic-1.1":
+            contract_address = data.manifest_hash
+        else:
+            contract_address = data.script_hash
+
+        ok = contract_engine.deploy_contract(contract_address, data.script)
         if not ok:
             raise HTTPException(status_code=400, detail="Bu contract zaten deploy edilmiş.")
 
         return {
-            "contract_address": data.script_hash,
+            "contract_address": contract_address,
             "message": "Contract deployed"
         }
 

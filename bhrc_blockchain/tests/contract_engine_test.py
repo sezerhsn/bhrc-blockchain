@@ -452,3 +452,15 @@ def test_manifest_hash_computation():
 
     assert len(manifest_hash) == 64
     print(f"Manifest Hash: {manifest_hash}")
+
+def test_safe_execute_script_with_version():
+    from bhrc_blockchain.core.contract.contract_engine import safe_execute_script
+
+    script = "result = 77"
+    context = {"state": {}}
+
+    output = safe_execute_script(script, context, version="1.1")
+
+    assert output["status"] == "success"
+    assert output["result"] == 77
+    print(f"Versioned Script Output: {output}")

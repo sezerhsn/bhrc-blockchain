@@ -827,3 +827,42 @@ def test_contracts_version_field(jwt_token):
     assert contract is not None
     assert contract["version"] == "v1.0.0"
 
+def test_deploy_contract_v1_1_manifest(jwt_token):
+    from bhrc_blockchain.api.contract_routes import compute_manifest_hash
+    import time
+    import uuid
+    import hashlib
+    from bhrc_blockchain.core.wallet.wallet import generate_wallet, sign_message
+
+    recipient_wallet = generate_wallet(password="receiver", force_new=True)
+
+    app.dependency_overrides[get_current_user] = lambda: {"sub": recipient_wallet["address"]}
+
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    private_key = recipient_wallet["private_key"]
+
+    script_content = "result = 42"
+    timestamp = int(time.time())
+    nonce = uuid.uuid4().int % (10 ** 8)
+
+    manifest_hash = compute_manifest_hash(script_content, timestamp, nonce)
+    signature = sign_message(private_key, manifest_hash)
+
+    payload = {
+        "script": script_content,
+        "timestamp": timestamp,
+        "nonce": nonce,
+        "manifest_hash": manifest_hash,
+        "signature": signature,
+        "type": "BHRC-Logic-1.1",
+        "sender_private_key": private_key
+    }
+
+    response = client.post("/contract/deploy", json=payload, headers=headers)
+    assert response.status_code == 200, response.text
+
+    data = response.json()
+    assert data["contract_address"] == manifest_hash
+    assert data["message"].startswith("Contract deployed")
+
+    app.dependency_overrides = {}
