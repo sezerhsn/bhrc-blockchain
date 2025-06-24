@@ -3,10 +3,33 @@
 {% block content %}
 <div class="container mt-4">
   <h2>İşlem Geçmişi</h2>
+
+  <form method="get" style="margin-bottom: 1rem;">
+    <div class="row g-2 align-items-center">
+      <div class="col-auto">
+        <input type="text" class="form-control" name="user_id" placeholder="Kullanıcı ID ile ara"
+               value="{{ request.query_params.get('user_id', '') }}">
+      </div>
+      <div class="col-auto">
+        <select name="sort" class="form-select">
+          <option value="desc" {% if request.query_params.get('sort', 'desc') == 'desc' %}selected{% endif %}>
+            Tarihe Göre (Yeni-Eski)
+          </option>
+          <option value="asc" {% if request.query_params.get('sort') == 'asc' %}selected{% endif %}>
+            Tarihe Göre (Eski-Yeni)
+          </option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Filtrele</button>
+      </div>
+    </div>
+  </form>
+
   <div class="mb-3">
     <label class="form-label">Cüzdan Adresi</label>
     <input type="text" id="walletAddress" class="form-control" placeholder="Adres girin">
-    <button class="btn btn-primary mt-2" onclick="loadHistory()">Getir</button>
+    <button class="btn btn-secondary mt-2" onclick="loadHistory()">Getir</button>
   </div>
 
   <div id="historyResult" class="mt-4"></div>
@@ -27,7 +50,7 @@ async function loadHistory() {
   const result = document.getElementById("historyResult");
 
   if (!res.ok) {
-    result.innerHTML = `<div class="alert alert-danger">🛑 ${out.detail || "İşlem alınamadı"}</div>`;
+    result.innerHTML = `<div class="alert alert-danger">🚨 ${out.detail || "İşlem alınamadı"}</div>`;
     return;
   }
 

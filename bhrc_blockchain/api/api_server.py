@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from bhrc_blockchain.network.notifications import websocket_connections
 from bhrc_blockchain.api.token_routes import router as token_router
 from bhrc_blockchain.api.chain_routes import router as chain_router
 from bhrc_blockchain.api.wallet_routes import router as wallet_router
@@ -12,6 +13,7 @@ from bhrc_blockchain.api.contract_routes import router as contract_router
 from bhrc_blockchain.api.admin_routes import router as admin_router
 from bhrc_blockchain.api.state_routes import router as state_router
 from bhrc_blockchain.api.consensus_routes import router as consensus_router
+from bhrc_blockchain.api.export_routes import router as export_router
 
 app = FastAPI(title="Behind The Random Coin API")
 
@@ -28,8 +30,21 @@ app.include_router(contract_router, prefix="/contract", tags=["SmartContract"])
 app.include_router(admin_router, tags=["Admin"])
 app.include_router(state_router, prefix="/state", tags=["State"])
 app.include_router(consensus_router, prefix="/consensus", tags=["Consensus"])
+app.include_router(export_router, prefix="/export", tags=["Export"])
 
 @app.get("/", tags=["Docs"])
 def root():
     return {"message": "Behind The Random Coin API → Swagger: /docs"}
+
+@app.websocket("/ws/admin-events")
+async def admin_events_ws(websocket: WebSocket):
+    await websocket.accept()
+    if websocket not in websocket_connections:
+        websocket_connections.append(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        if websocket in websocket_connections:
+            websocket_connections.remove(websocket)
 

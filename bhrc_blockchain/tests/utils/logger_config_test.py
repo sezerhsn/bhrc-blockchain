@@ -2,7 +2,7 @@ import os
 import logging
 import pytest
 from bhrc_blockchain.core.logger.logging_utils import setup_logger
-from bhrc_blockchain.config.config import Config
+from bhrc_blockchain.config.config import settings
 
 def test_logger_multiple_calls_does_not_duplicate_handlers():
     logger1 = setup_logger("TestLogger")
@@ -32,9 +32,9 @@ def test_config_defaults(monkeypatch):
     monkeypatch.delenv("BLOCK_REWARD", raising=False)
     monkeypatch.delenv("MAX_BLOCK_SIZE", raising=False)
 
-    assert isinstance(Config.BLOCK_REWARD, float)
-    assert Config.BLOCK_REWARD == 64.0
-    assert Config.MAX_BLOCK_SIZE == 1453000
+    assert isinstance(settings.BLOCK_REWARD, float)
+    assert settings.BLOCK_REWARD == 64.0
+    assert settings.MAX_BLOCK_SIZE == 1453000
 
 def test_config_env_override(monkeypatch):
     monkeypatch.setenv("BLOCK_REWARD", "100")
@@ -43,6 +43,8 @@ def test_config_env_override(monkeypatch):
     from importlib import reload
     from bhrc_blockchain.config import config
     reload(config)
-    assert config.Config.BLOCK_REWARD == 100.0
-    assert config.Config.MAX_BLOCK_SIZE == 999999
+
+    new_settings = config.Config()
+    assert new_settings.BLOCK_REWARD == 100.0
+    assert new_settings.MAX_BLOCK_SIZE == 999999
 

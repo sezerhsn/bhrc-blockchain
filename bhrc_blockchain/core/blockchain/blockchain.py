@@ -6,7 +6,7 @@ from bhrc_blockchain.core.utxo.utxo_manager import UTXOManager
 from bhrc_blockchain.core.block import Block, verify_block_signature
 from bhrc_blockchain.core.mempool.mempool import get_ready_transactions, clear_mempool, remove_transaction_from_mempool
 from bhrc_blockchain.core.transaction.transaction import validate_transaction, create_transaction, Transaction
-from bhrc_blockchain.config.config import Config
+from bhrc_blockchain.config.config import settings
 from bhrc_blockchain.core.wallet.wallet import MinerWallet, sign_block, get_public_key_from_private_key
 from bhrc_blockchain.utils.utils import get_readable_time
 import bhrc_blockchain.database.orm_storage as orm_storage
@@ -16,21 +16,22 @@ from bhrc_blockchain.core.transaction.validation import ChainValidator
 from bhrc_blockchain.core.logger.logger import setup_logger
 from bhrc_blockchain.core.blockchain.mining import adjust_difficulty, mine_block as mining_function
 from bhrc_blockchain.core.state.state_manager import StateManager
+from bhrc_blockchain.network.notifications import emit_admin_alert
 
 logger = setup_logger("Blockchain")
 
 class Blockchain:
     def __init__(self, autoload: bool = True) -> None:
         self.chain: List[Block] = []
-        self.block_reward: float = Config.BLOCK_REWARD
-        self.difficulty_prefix: str = Config.INITIAL_DIFFICULTY
+        self.block_reward: float = settings.BLOCK_REWARD
+        self.difficulty_prefix: str = settings.INITIAL_DIFFICULTY
         self.miner_wallet: MinerWallet = MinerWallet(password="genesis", persist=False)
         self.utxos = {}
         self.current_transactions = []
         self.utxo_manager = UTXOManager()
         self.state = StateManager()
-        self.adjustment_interval = Config.DIFFICULTY_ADJUSTMENT_INTERVAL
-        self.target_block_time = Config.TARGET_TIME_PER_BLOCK
+        self.adjustment_interval = settings.DIFFICULTY_ADJUSTMENT_INTERVAL
+        self.target_block_time = settings.TARGET_TIME_PER_BLOCK
 
         self.mempool = []
         self.peers = []
@@ -143,19 +144,27 @@ class Blockchain:
         return self.chain[-1] if self.chain else None
 
     def add_block(self, block: Block) -> bool:
+        if isinstance(block, dict):
+            block = Block.from_dict(block)
+
         if self.validate_block(block):
             self.chain.append(block)
             orm_storage.save_block(block.to_dict())
             logger.info(f"✅ Yeni blok eklendi: {block.index}")
+
+            emit_admin_alert("block_added", {
+                "index": block.index,
+                "hash": block.block_hash,
+                "producer": getattr(block, "producer_id", "unknown")
+            })
+
             return True
         return False
 
     def validate_block(self, block):
-        # Yapısal doğrulama
         if not Block.validate_block(block):
             return False
 
-        # Zincirle uyumluluk
         last_block = self.get_last_block()
 
         if block.index != last_block.index + 1:
@@ -194,12 +203,12 @@ class Blockchain:
         Zinciri dışarıdan gelen zincirle kıyasla ve gerekirse değiştir.
         """
         try:
+
             new_chain = [Block.from_dict(b) for b in new_chain_data]
 
             if len(new_chain) <= len(self.chain):
                 return {"status": "rejected", "message": "Zincir daha kısa veya eşit uzunlukta."}
 
-            # Eğer zincir geçerliyse ve daha uzunsa değiştir
             if self.validate_chain(new_chain):
                 self.chain = new_chain
                 self.save_chain()
@@ -209,6 +218,15 @@ class Blockchain:
 
         except Exception as e:
             return {"status": "error", "message": str(e)}
+
+    def get_total_transaction_count(self):
+        return sum(len(block.transactions) for block in self.chain)
+
+    def save_chain(self):
+        """Zinciri veritabanına kaydeder."""
+        with open("chain.json", "w") as f:
+            json.dump([b.to_dict() for b in self.chain], f, indent=4)
+        return True
 
 def get_blockchain():
     if not hasattr(get_blockchain, "instance"):

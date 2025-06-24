@@ -1,0 +1,68 @@
+{% extends "panel/overview.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>Kullanıcı Yönetimi</h2>
+
+  <table class="table table-bordered table-hover mt-3">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Kullanıcı Adı</th>
+        <th>Email</th>
+        <th>Rol</th>
+        <th>Durum</th>
+        <th>İşlem</th>
+      </tr>
+    </thead>
+    <tbody id="userTableBody">
+      <!-- JS ile doldurulacak -->
+    </tbody>
+  </table>
+</div>
+
+<script>
+async function loadUsers() {
+  const res = await fetch("/admin/users");
+  const users = await res.json();
+  const tbody = document.getElementById("userTableBody");
+
+  tbody.innerHTML = users.map(user => `
+    <tr>
+      <td>${user.id}</td>
+      <td>${user.username}</td>
+      <td>${user.email}</td>
+      <td>
+        <select onchange="updateRole(${user.id}, this.value)">
+          <option value="user" ${user.role === 'user' ? 'selected' : ''}>user</option>
+          <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>admin</option>
+        </select>
+      </td>
+      <td>${user.status ? 'Aktif' : 'Pasif'}</td>
+      <td>
+        <button class="btn btn-sm btn-danger" onclick="deactivateUser(${user.id})">Pasifleştir</button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+async function updateRole(userId, newRole) {
+  await fetch(`/admin/users/${userId}/update_role`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(newRole)
+  });
+  loadUsers();
+}
+
+async function deactivateUser(userId) {
+  await fetch(`/admin/users/${userId}/deactivate`, {
+    method: "POST"
+  });
+  loadUsers();
+}
+
+loadUsers();
+</script>
+{% endblock %}
+

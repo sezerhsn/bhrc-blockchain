@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+ecdsa
+pycryptodome
+websockets
+pydantic
+pytest
+pytest-asyncio
+pytest-cov
+python-jose[cryptography]
+python-dotenv
+mnemonic
+bip_utils
+passlib[bcrypt]
+bcrypt
+jinja2
+

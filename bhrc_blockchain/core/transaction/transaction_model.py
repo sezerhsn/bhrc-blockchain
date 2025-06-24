@@ -44,6 +44,7 @@ class Transaction:
     script_sig: Optional[str] = None
     script: Optional[str] = None  # ✅ YENİ
     txid: Optional[str] = None
+    contract_result: Optional[dict] = None
 
     def to_dict(self) -> dict:
         data = {
@@ -67,6 +68,8 @@ class Transaction:
             data["script"] = self.script
         if self.txid is not None:
             data["txid"] = self.txid
+        if self.contract_result is not None:
+            data["contract_result"] = self.contract_result
         return data
 
     def compute_txid(self) -> str:
@@ -91,6 +94,7 @@ class Transaction:
             outputs=[TransactionOutput(**o) for o in data.get("outputs", [])],
             public_key=data.get("public_key"),
             script_sig=data.get("script_sig"),
-            script=data.get("script")
+            script=data.get("script"),
+            contract_result=data.get("contract_result")
         )
 

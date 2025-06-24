@@ -33,3 +33,23 @@ def test_wallet_address(jwt_token):
     data = response.json()
     assert data["address"].startswith("xBHR")
 
+def test_wallet_generate(jwt_token):
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    response = client.get("/wallet/generate", params={"password": "testpass"}, headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert "address" in data
+    assert "private_key" in data
+    assert "public_key" in data
+
+def test_wallet_create_invalid(jwt_token):
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    response = client.post("/wallet/create", json={"password": None}, headers=headers)
+    assert response.status_code == 422  # FastAPI validation hatası
+
+def test_wallet_address_invalid_key(jwt_token):
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    response = client.get("/wallet/address", params={"private_key": "geçersiz_key"}, headers=headers)
+    assert response.status_code == 400
+    assert "detail" in response.json()
+

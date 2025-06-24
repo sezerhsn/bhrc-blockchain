@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, Request, Depends, HTTPException, Response
+from bhrc_blockchain.utils.export_utils import export_logs_to_csv, export_logs_to_pdf
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from bhrc_blockchain.api.auth import get_current_user, verify_token
@@ -7,6 +8,10 @@ from bhrc_blockchain.core.mempool.mempool import Mempool
 from bhrc_blockchain.database.dao_storage import DAOStorage
 from bhrc_blockchain.database.nft_storage import NFTStorage
 from bhrc_blockchain.network.p2p import P2PNode
+from typing import Optional
+from sqlalchemy.orm import Session
+from bhrc_blockchain.database.models import LogModel, UndoLog
+from bhrc_blockchain.database.database import SessionLocal
 
 router = APIRouter()
 templates = Jinja2Templates(directory="bhrc_blockchain/templates")
@@ -144,4 +149,49 @@ def get_chain_snapshot(current_user: dict = Depends(get_current_user)):
         })
 
     return {"length": len(snapshot), "chain": snapshot}
+
+@router.get("/admin/history", response_class=HTMLResponse)
+async def admin_history(
+    request: Request,
+    user_id: Optional[str] = None,
+    sort: Optional[str] = "desc"
+):
+    session: Session = SessionLocal()
+    query = session.query(LogModel)
+
+    if user_id:
+        query = query.filter(LogModel.user_id == user_id)
+
+    if sort == "asc":
+        query = query.order_by(LogModel.timestamp.asc())
+    else:
+        query = query.order_by(LogModel.timestamp.desc())
+
+    logs = query.all()
+    return templates.TemplateResponse("panel/history.html", {
+        "request": request,
+        "logs": logs
+    })
+
+@router.get("/admin/export_logs")
+async def export_logs(format: str = "csv"):
+    session = SessionLocal()
+    logs = session.query(UndoLog).all()
+
+    if format == "csv":
+        csv_data = export_logs_to_csv(logs)
+        return Response(
+            content=csv_data,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=logs.csv"}
+        )
+    elif format == "pdf":
+        pdf_data = export_logs_to_pdf(logs)
+        return Response(
+            content=pdf_data.read(),
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=logs.pdf"}
+        )
+    else:
+        raise HTTPException(status_code=400, detail="Format desteklenmiyor. csv veya pdf kullanın.")
 

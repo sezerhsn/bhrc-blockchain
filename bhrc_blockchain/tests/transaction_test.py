@@ -2,7 +2,7 @@ import pytest
 import time
 from ecdsa import SigningKey, SECP256k1
 from unittest.mock import patch, MagicMock
-from bhrc_blockchain.config.config import Config
+from bhrc_blockchain.config.config import settings
 from bhrc_blockchain.core.transaction.transaction_model import TransactionInput, TransactionOutput
 from bhrc_blockchain.core.transaction.transaction import (
     verify_signature,
@@ -119,8 +119,8 @@ def test_validate_transaction_bad_signature():
 def test_validate_transaction_valid_signature():
     tx_time = time.time()
     raw_msg = f"{sender}{'xBHR' + 'C'*60}10{0.1}msgnote"+"transfer0"+str(tx_time)
-    sig = sign_message(privkey, raw_msg)  # ✅ .hex() kaldırıldı
-    pub = get_public_key_from_private_key(privkey)  # ✅ .hex() kaldırıldı
+    sig = sign_message(privkey, raw_msg)
+    pub = get_public_key_from_private_key(privkey)
 
     tx = {
         "sender": sender,
@@ -196,7 +196,7 @@ def test_validate_transaction_contract_failure(mock_eval):
         str(recipient) +
         str(1.0) +
         str(0.1) +
-        "" + "" +  # message, note
+        "" + "" +
         "contract" +
         str(0) +
         str(tx_time)
@@ -243,7 +243,7 @@ def test_create_transaction_auto_fee(mock_utxo):
         amount=10.0,
         sender_private_key=privkey
     )
-    expected_fee = max(Config.MIN_TRANSACTION_FEE, 10.0 * Config.TRANSACTION_FEE_PERCENTAGE)
+    expected_fee = max(settings.MIN_TRANSACTION_FEE, 10.0 * settings.TRANSACTION_FEE_PERCENTAGE)
     assert abs(tx["fee"] - expected_fee) < 0.0001
 
 def test_validate_coinbase_missing_sig_fields():
@@ -254,6 +254,5 @@ def test_validate_coinbase_missing_sig_fields():
         "txid": "coinbase_txid",
         "type": "coinbase"
     }
-    # Coinbase işleminde imza kontrolü yapılmaz, hata olmamalı
     assert validate_transaction(tx) is True
 

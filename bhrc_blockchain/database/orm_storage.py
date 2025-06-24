@@ -6,6 +6,7 @@ from bhrc_blockchain.core.logger.logging_utils import setup_logger
 logger = setup_logger("ORM")
 
 Session = sessionmaker(bind=engine)
+SessionLocal = sessionmaker(bind=engine)
 Base.metadata.create_all(engine)
 
 def get_session():
@@ -120,8 +121,12 @@ def apply_utxo_changes(transactions, session=None):
         session.commit()
         session.close()
 
-def clear_all_blocks():
-    session = SessionLocal()
+def clear_all_blocks(session=None):
+    own_session = False
+    if session is None:
+        session = get_session()
+        own_session = True
+
     try:
         session.query(BlockModel).delete()
         session.commit()
@@ -130,11 +135,15 @@ def clear_all_blocks():
         logger.error(f"🚨 Bloklar silinemedi: {e}")
         session.rollback()
     finally:
-        session.close()
+        if own_session:
+            session.close()
 
+def clear_all_utxos(session=None):
+    own_session = False
+    if session is None:
+        session = get_session()
+        own_session = True
 
-def clear_all_utxos():
-    session = SessionLocal()
     try:
         session.query(UTXOModel).delete()
         session.commit()
@@ -143,14 +152,20 @@ def clear_all_utxos():
         logger.error(f"🚨 UTXO'lar silinemedi: {e}")
         session.rollback()
     finally:
-        session.close()
+        if own_session:
+            session.close()
 
-def clear_all_data():
-    from bhrc_blockchain.database.models import BlockModel, UTXOModel
-    from bhrc_blockchain.database.database import session
+def clear_all_data(session=None):
+    own_session = False
+    if session is None:
+        session = get_session()
+        own_session = True
 
     session.query(BlockModel).delete()
     session.query(UTXOModel).delete()
     session.commit()
     logger.info("🧹 ORM | Blok ve UTXO verileri temizlendi.")
+
+    if own_session:
+        session.close()
 

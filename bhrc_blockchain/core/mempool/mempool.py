@@ -1,8 +1,9 @@
 import json
 import os
 import threading
+from bhrc_blockchain.config.config import settings
 
-MEMPOOL_FILE = "mempool_cache.json"
+MEMPOOL_FILE = ":memory:" if settings.TESTING else "mempool_cache.json"
 mempool_lock = threading.Lock()
 mempool = []
 
@@ -19,7 +20,9 @@ def initialize_mempool(file_path: str = MEMPOOL_FILE):
             mempool = []
 
 def persist_mempool(file_path: str = MEMPOOL_FILE):
-    """Mempool listesini diske yazar."""
+    """Mempool listesini diske yazar (TESTING modunda yazmaz)."""
+    if settings.TESTING:
+        return
     with mempool_lock:
         with open(file_path, "w") as f:
             json.dump(mempool, f, indent=2)
@@ -55,4 +58,12 @@ class Mempool:
     @property
     def transactions(self):
         return get_ready_transactions()
+
+def get_transaction_from_mempool(txid: str):
+    """txid'ye göre mempool içinden işlem döner (bulunamazsa None)."""
+    with mempool_lock:
+        for tx in mempool:
+            if tx.get("txid") == txid:
+                return tx
+    return None
 

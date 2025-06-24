@@ -38,7 +38,7 @@ def test_list_all_nfts(jwt_token):
     assert isinstance(data["nfts"], list)
 
 def test_list_owner_nfts(jwt_token):
-    test_wallet = generate_wallet(password="nftowner", force_new=True)
+    test_wallet = {"address": "admin"}
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.get(f"/nft/owner/{test_wallet['address']}", headers=headers)
     assert response.status_code == 200

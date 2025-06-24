@@ -1,18 +1,18 @@
 import asyncio
 import json
 from typing import Set
-
 from websockets.exceptions import ConnectionClosed
 from websockets.server import WebSocketServerProtocol, serve
 from websockets.client import connect
-
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-
 from bhrc_blockchain.core.block import Block
 from bhrc_blockchain.core.logger.logging_utils import setup_logger
 from bhrc_blockchain.core.transaction.validation import validate_block_structure, ChainValidator
 from bhrc_blockchain.core.blockchain.blockchain import Blockchain
+from bhrc_blockchain.core.mempool.mempool import add_transaction_to_mempool, mempool
+
+globals()["mempool"] = mempool
 
 logger = setup_logger("P2P")
 
@@ -67,6 +67,9 @@ async def handler(websocket: WebSocketServerProtocol, path):
 
             elif action == "BLOCKCHAIN":
                 received_chain = data.get("chain")
+                if not received_chain:
+                    logger.warning("❌ Zincir verisi alınamadı (None veya boş).")
+                    return
                 logger.info(f"🔁 Zincir senkronize ediliyor... Blok sayısı: {len(received_chain)}")
 
                 if len(received_chain) > len(local_blockchain.chain):

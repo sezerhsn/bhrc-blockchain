@@ -19,7 +19,7 @@ def test_create_multisig(jwt_token):
     headers = {"Authorization": f"Bearer {jwt_token}"}
     payload = {
         "data": {"action": "sample-action", "value": str(uuid.uuid4())},
-        "required_signers": ["admin", "demo"]
+        "required_signers": ["admin"]
     }
 
     response = client.post("/multisig/create", json=payload, headers=headers)

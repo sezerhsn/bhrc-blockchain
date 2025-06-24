@@ -1,7 +1,7 @@
 import pytest
 import random
 import string
-
+from bhrc_blockchain.api import token_routes
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from bhrc_blockchain.api.api_server import app
@@ -10,9 +10,11 @@ from bhrc_blockchain.core.wallet.wallet import MinerWallet
 from bhrc_blockchain.core.token.token_contract import create_token_transaction, create_token_transfer_transaction
 
 def override_get_current_user():
-    return {"username": "test", "roles": ["admin"]}
-
-app.dependency_overrides[get_current_user] = override_get_current_user
+    return {
+        "sub": "admin",
+        "role": "super_admin",
+        "permissions": ["clear-mempool", "active-sessions", "snapshot", "rollback", "reset-chain", "update_role", "deactivate_user", "view_logs"]
+    }
 
 client = TestClient(app)
 
@@ -31,8 +33,10 @@ def test_token_deploy():
         "message": "deploy test",
         "signature": wallet.private_key
     })
+    assert response.status_code == 200
     data = response.json()
     assert "txid" in data or "transaction" in data
+    assert data["message"] == "Token oluşturma işlemi mempool'a eklendi"
 
 def test_token_transfer():
     wallet = MinerWallet()
@@ -191,4 +195,26 @@ def test_token_explorer_error():
         response = client.get("/token/explorer")
         assert response.status_code == 500
         assert "Hata oluştu" in response.text
+
+def test_get_token_list_empty():
+    with patch("bhrc_blockchain.api.token_routes.get_all_tokens", return_value=[]):
+        response = client.get("/token/all")
+        assert response.status_code == 200
+        assert response.json() == []
+
+def test_token_deploy_invalid_signature():
+    wallet = MinerWallet()
+    symbol = unique_symbol()
+    response = client.post("/token/deploy", params={
+        "name": "FailToken",
+        "symbol": symbol,
+        "total_supply": 1000,
+        "decimals": 0,
+        "creator_address": wallet.address,
+        "message": "invalid deploy",
+        "signature": "invalid-signature"
+    })
+    assert response.status_code == 200
+    assert "Token oluşturulamadı" in str(response.json())
+
 

@@ -3,7 +3,7 @@
 echo "🔍 BHRC Tüm Testler Başlatılıyor..."
 cd "$(dirname "$0")"
 
-PYTHONPATH=./bhrc_blockchain coverage run --source=bhrc_blockchain -m pytest bhrc_blockchain/tests
+PYTHONPATH=. coverage run --source=bhrc_blockchain -m pytest bhrc_blockchain/tests
 
 coverage report -m
 

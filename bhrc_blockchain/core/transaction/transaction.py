@@ -4,7 +4,7 @@ from typing import Dict, Optional, Any
 
 from bhrc_blockchain.database.storage import SQLiteDataStore
 from bhrc_blockchain.core.transaction.transaction_model import Transaction, TransactionInput, TransactionOutput
-from bhrc_blockchain.config.config import Config
+from bhrc_blockchain.config.config import settings
 from bhrc_blockchain.core.wallet.wallet import (
     get_address_from_private_key,
     sign_message,
@@ -52,16 +52,16 @@ def create_transaction(
     locktime: int = 0,
     sender_private_key: Optional[str] = None,
     db: Optional[SQLiteDataStore] = None,
-    script: Optional[str] = None
+    script: Optional[str] = None,
+    contract_result: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
 
     if tx_type not in ["coinbase", "token_transfer", "token_deploy", "transfer", "contract"]:
         raise ValueError("Geçersiz işlem tipi")
 
     if fee is None:
-        fee = 0.0 if tx_type == "coinbase" else max(Config.MIN_TRANSACTION_FEE, amount * Config.TRANSACTION_FEE_PERCENTAGE)
+        fee = 0.0 if tx_type == "coinbase" else max(settings.MIN_TRANSACTION_FEE, amount * settings.TRANSACTION_FEE_PERCENTAGE)
 
-    # 🔍 DEBUG: private key geldi mi?
     print("🔑 [DEBUG] sender_private_key type:", type(sender_private_key))
     print("🔑 [DEBUG] sender_private_key value:", sender_private_key)
 
@@ -131,7 +131,8 @@ def create_transaction(
         outputs=outputs,
         public_key=public_key,
         script_sig=signature,
-        script=script
+        script=script,
+        contract_result=contract_result
     )
     tx.txid = tx.compute_txid()
     return tx.to_dict()

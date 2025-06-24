@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, Float, String, Text, JSON
+from sqlalchemy import Column, Integer, Float, String, Text, JSON, Boolean, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
+from datetime import datetime
+from pydantic import BaseModel
 
 Base = declarative_base()
 
@@ -61,8 +63,6 @@ class UTXOModel(Base):
     amount = Column(Float)
     spent = Column(Integer, default=0)
 
-from pydantic import BaseModel
-
 class TokenTransferPayload(BaseModel):
     sender: str
     recipient: str
@@ -70,4 +70,45 @@ class TokenTransferPayload(BaseModel):
     amount: float
     message: str
     signature: str
+
+class LogModel(Base):
+    __tablename__ = "logs"
+
+    id = Column(Integer, primary_key=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    level = Column(String)
+    message = Column(Text)
+    source = Column(String)
+
+
+class UndoLog(Base):
+    __tablename__ = "undo_logs"
+
+    id = Column(Integer, primary_key=True)
+    action_type = Column(String, nullable=False)
+    snapshot_ref = Column(String, nullable=True)
+    meta_data = Column(JSON, nullable=True)
+    reversed = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class SessionLog(Base):
+    __tablename__ = "session_logs"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, nullable=False)
+    username = Column(String, nullable=False)
+    ip_address = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    login_time = Column(DateTime, default=datetime.utcnow)
+    active = Column(Boolean, default=True)
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    role = Column(String, default="admin")
+    status = Column(Boolean, default=True)
+
 
