@@ -1,7 +1,7 @@
 import pytest
 from bhrc_blockchain.api import panel_routes
 from fastapi.testclient import TestClient
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from bhrc_blockchain.api.api_server import app
 
 client = TestClient(app)

@@ -13,6 +13,7 @@ from bhrc_blockchain.core.snapshot.snapshot_manager import save_snapshot
 from bhrc_blockchain.database.models import UndoLog, User, SessionLog
 from bhrc_blockchain.database.database import SessionLocal
 from bhrc_blockchain.core.snapshot.snapshot_manager import save_snapshot, load_snapshot
+from bhrc_blockchain.core.mempool.mempool import clear_mempool
 
 ROLE_PERMISSIONS = {
     "super_admin": {"reset-chain", "clear-mempool", "snapshot", "rollback", "update_role", "deactivate_user", "view_logs"},
@@ -94,7 +95,7 @@ def network_stats(_: dict = Depends(admin_required)):
             "peers": blockchain.peers,
             "total_blocks": len(blockchain.chain),
             "difficulty": blockchain.difficulty_prefix,
-            "mempool_size": len(blockchain.mempool),
+            "mempool_size": len(blockchain.mempool_transactions),
             "last_block_index": blockchain.chain[-1].index if blockchain.chain else None,
             "avg_block_time": round(avg_block_time, 2)
         }
@@ -233,9 +234,8 @@ def reset_chain(current_admin: str = permission_required("reset-chain")):
     return {"message": "Zincir genesis bloğa sıfırlandı"}
 
 @router.post("/admin/clear-mempool")
-def clear_mempool(current_admin: str = permission_required("clear-mempool")):
-    blockchain = get_blockchain()
-    blockchain.mempool.clear()
+def clear_mempool_route(current_admin: str = permission_required("clear-mempool")):
+    clear_mempool()
     log_admin_action("Mempool temizlendi", user=current_admin)
 
     try:

@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from bhrc_blockchain.api.auth import get_current_user
 from bhrc_blockchain.core.transaction.transaction import create_transaction
-from bhrc_blockchain.core.mempool.mempool import add_transaction_to_mempool, get_transaction_from_mempool
 from bhrc_blockchain.core.wallet.wallet import verify_signature, get_public_key_from_private_key
 from bhrc_blockchain.core.contract.contract_engine import execute_script, contract_registry, SmartContractEngine, contract_engine
 
@@ -87,7 +86,6 @@ def submit_contract(
             contract_result=execution_result
         )
 
-        add_transaction_to_mempool(tx)
 
         return {
             "message": "Contract işlemi mempool'a eklendi",
@@ -132,32 +130,21 @@ def simulate_contract(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Simülasyon sırasında hata: {str(e)}")
 
-@router.get("/tx/{txid}", summary="Contract transaction durumunu sorgula")
+@router.get("/contract/status/{txid}")
 def get_contract_status(txid: str):
     try:
-        tx = get_transaction_from_mempool(txid)
+        tx = get_transaction_by_txid(txid)
+        if tx is None:
+            raise HTTPException(status_code=404, detail="Transaction bulunamadı")
 
-        if not tx:
-            raise HTTPException(status_code=404, detail="Transaction bulunamadı.")
-
-        if tx["type"] != "contract":
-            raise HTTPException(status_code=400, detail="Bu işlem bir contract işlemi değil.")
-
-        execution_result = tx.get("contract_result", None)
-        state = execution_result.get("state", {}) if execution_result else {}
-
-        return {
-            "txid": txid,
-            "executed": execution_result is not None,
-            "execution_result": execution_result,
-            "state": state,
-            "logs": execution_result.get("logs", []) if execution_result else [],
-            "gas_used": execution_result.get("gas_used", 0) if execution_result else 0,
-            "tx": tx
+        result = {
+            "txid": tx.txid,
+            "status": tx.status,
+            "logs": tx.contract.logs if tx.contract and tx.contract.logs else [],
         }
-
+        return result
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Durum sorgulama hatası: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Durum sorgulama hatası: {e}")
 
 class DeployRequest(BaseModel):
     script: str

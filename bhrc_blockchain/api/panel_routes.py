@@ -4,7 +4,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from bhrc_blockchain.api.auth import get_current_user, verify_token
 from bhrc_blockchain.core.blockchain.blockchain import Blockchain
-from bhrc_blockchain.core.mempool.mempool import Mempool
+from bhrc_blockchain.core.mempool.mempool import get_ready_transactions
 from bhrc_blockchain.database.dao_storage import DAOStorage
 from bhrc_blockchain.database.nft_storage import NFTStorage
 from bhrc_blockchain.network.p2p import P2PNode
@@ -47,7 +47,6 @@ async def graph_page(request: Request, current_user: dict = Depends(get_current_
 @router.get("/panel/status", response_class=HTMLResponse)
 def panel_status(request: Request, current_user: dict = Depends(get_current_user)):
     blockchain = Blockchain()
-    mempool = Mempool()
     dao_storage = DAOStorage()
     nft_storage = NFTStorage()
     p2p = P2PNode()
@@ -62,7 +61,7 @@ def panel_status(request: Request, current_user: dict = Depends(get_current_user
         "request": request,
         "total_blocks": len(chain),
         "total_transactions": sum(len(block.transactions) for block in chain),
-        "mempool_size": len(mempool.transactions),
+        "mempool_size": len(get_ready_transactions()),
         "last_block_hash": chain[-1].block_hash if chain else "Yok",
         "block_labels": block_labels,
         "block_sizes": block_sizes,
@@ -75,7 +74,6 @@ def panel_status(request: Request, current_user: dict = Depends(get_current_user
 @router.get("/panel/status-data")
 def get_panel_status_data(current_user: dict = Depends(get_current_user)):
     blockchain = Blockchain()
-    mempool = Mempool()
     dao_storage = DAOStorage()
     nft_storage = NFTStorage()
     p2p = P2PNode()
@@ -89,7 +87,7 @@ def get_panel_status_data(current_user: dict = Depends(get_current_user)):
     return {
         "total_blocks": len(chain),
         "total_transactions": sum(len(block.transactions) for block in chain),
-        "mempool_size": len(mempool.transactions),
+        "mempool_size": len(get_ready_transactions()),
         "last_block_hash": chain[-1].block_hash if chain else "Yok",
         "total_tokens": len(dao_storage.get_all_tokens()),
         "total_nfts": len(nft_storage.get_all_nfts()),

@@ -175,7 +175,7 @@ async def test_handler_new_tx_already_in_mempool(mock_add_tx):
     ws = AsyncMock()
     ws.remote_address = ("127.0.0.1", 1234)
 
-    with patch("bhrc_blockchain.network.p2p.any", return_value=True):
+    with patch("bhrc_blockchain.network.p2p.get_transaction_from_mempool", return_value={"txid": "dupe_tx"}):
         ws.__aiter__.return_value = iter([
             json.dumps({"action": "NEW_TX", "transaction": {"txid": "dupe_tx"}})
         ])

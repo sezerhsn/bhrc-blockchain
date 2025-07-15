@@ -10,9 +10,7 @@ from bhrc_blockchain.core.block import Block
 from bhrc_blockchain.core.logger.logging_utils import setup_logger
 from bhrc_blockchain.core.transaction.validation import validate_block_structure, ChainValidator
 from bhrc_blockchain.core.blockchain.blockchain import Blockchain
-from bhrc_blockchain.core.mempool.mempool import add_transaction_to_mempool, mempool
-
-globals()["mempool"] = mempool
+from bhrc_blockchain.core.mempool.mempool import add_transaction_to_mempool, get_transaction_from_mempool
 
 logger = setup_logger("P2P")
 
@@ -113,9 +111,8 @@ async def handler(websocket: WebSocketServerProtocol, path):
             elif action == "NEW_TX":
                 tx = data.get("transaction")
                 txid = tx.get("txid")
-                from bhrc_blockchain.core.mempool.mempool import add_transaction_to_mempool, mempool
 
-                if not any(existing.get("txid") == txid for existing in mempool):
+                if not get_transaction_from_mempool(txid):
                     logger.info(f"📨 Yeni işlem alındı ve mempool'a eklendi: {txid}")
                     add_transaction_to_mempool(tx)
                 else:

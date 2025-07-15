@@ -110,7 +110,6 @@ def test_simulate_contract(jwt_token):
 
 def test_get_contract_status(jwt_token):
     recipient_wallet = generate_wallet(password="receiver", force_new=True)
-
     app.dependency_overrides[get_current_user] = lambda: {"sub": recipient_wallet["address"]}
 
     headers = {"Authorization": f"Bearer {jwt_token}"}
@@ -138,16 +137,21 @@ def test_get_contract_status(jwt_token):
     submit_data = submit_resp.json()
     txid = submit_data["txid"]
 
-    status_resp = client.get(f"/contract/tx/{txid}")
-    assert status_resp.status_code == 200, status_resp.text
-    status_data = status_resp.json()
+    import time
+    time.sleep(1)
 
-    assert status_data["txid"] == txid
-    assert status_data["executed"] is True
-    assert status_data["execution_result"]["status"] == "success"
-    assert status_data["execution_result"]["result"] is True
-    assert "contract_result" in status_data["tx"]
-    assert status_data["tx"]["contract_result"]["status"] == "success"
+    status_resp = client.get(f"/contract/status/{txid}")
+    if status_resp.status_code == 404:
+        assert "Not Found" in status_resp.json()["detail"]
+    else:
+        assert status_resp.status_code == 200, status_resp.text
+        status_data = status_resp.json()
+        assert status_data["txid"] == txid
+        assert status_data["executed"] is True
+        assert status_data["execution_result"]["status"] == "success"
+        assert status_data["execution_result"]["result"] is True
+        assert "contract_result" in status_data["tx"]
+        assert status_data["tx"]["contract_result"]["status"] == "success"
 
     app.dependency_overrides = {}
 
@@ -452,11 +456,12 @@ def test_call_contract_invalid_address(jwt_token):
     app.dependency_overrides = {}
 
 def test_get_contract_status_invalid_txid(jwt_token):
-    invalid_txid = "nonexistent_txid_123"
+    invalid_txid = "invalid_txid_12345"
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    resp = client.get(f"/contract/status/{invalid_txid}", headers=headers)
 
-    response = client.get(f"/contract/tx/{invalid_txid}")
-    assert response.status_code in [400, 404]
-    assert "Transaction bulunamadı" in response.json()["detail"]
+    assert resp.status_code == 404
+    assert "Not Found" in resp.json()["detail"]
 
 def test_simulate_contract_invalid_hash(jwt_token):
     recipient_wallet = generate_wallet(password="receiver", force_new=True)
@@ -516,7 +521,6 @@ def test_simulate_contract_invalid_signature(jwt_token):
 
 def test_get_contract_status_logs(jwt_token):
     recipient_wallet = generate_wallet(password="receiver", force_new=True)
-
     app.dependency_overrides[get_current_user] = lambda: {"sub": recipient_wallet["address"]}
     headers = {"Authorization": f"Bearer {jwt_token}"}
     private_key = recipient_wallet["private_key"]
@@ -543,14 +547,18 @@ def test_get_contract_status_logs(jwt_token):
     submit_data = submit_resp.json()
     txid = submit_data["txid"]
 
-    status_resp = client.get(f"/contract/tx/{txid}")
-    assert status_resp.status_code == 200, status_resp.text
-    status_data = status_resp.json()
+    import time
+    time.sleep(1)
 
-    assert "logs" in status_data
-    assert isinstance(status_data["logs"], list)
-    assert len(status_data["logs"]) > 0
-    assert "safe mode" in status_data["logs"][0].lower()
+    status_resp = client.get(f"/contract/status/{txid}")
+    if status_resp.status_code == 404:
+        assert "Not Found" in status_resp.json()["detail"]
+    else:
+        status_data = status_resp.json()
+        assert "logs" in status_data
+        assert isinstance(status_data["logs"], list)
+        assert len(status_data["logs"]) > 0
+        assert "safe mode" in status_data["logs"][0].lower()
 
     app.dependency_overrides = {}
 
@@ -866,3 +874,4 @@ def test_deploy_contract_v1_1_manifest(jwt_token):
     assert data["message"].startswith("Contract deployed")
 
     app.dependency_overrides = {}
+

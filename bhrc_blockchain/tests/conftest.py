@@ -3,6 +3,9 @@ import pytest
 from fastapi.testclient import TestClient
 from bhrc_blockchain.api.api_server import app
 from fastapi import Depends, HTTPException
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from bhrc_blockchain.database.models import Base
 from bhrc_blockchain.api import (
     auth_routes,
     admin_routes,
@@ -11,12 +14,28 @@ from bhrc_blockchain.api import (
     dao_routes,
     nft_routes,
     multisig_routes,
-    transaction_routes
+    transaction_routes,
+    export_routes,
 )
 
 def pytest_configure(config):
     os.environ["TESTING"] = "1"
     os.environ["BHRC_TEST_MODE"] = "1"
+
+TEST_DATABASE_URL = "sqlite:///:memory:"
+
+@pytest.fixture(scope="function")
+def db_session():
+    engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    Base.metadata.create_all(bind=engine)
+
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @pytest.fixture(scope="module")
 def client():

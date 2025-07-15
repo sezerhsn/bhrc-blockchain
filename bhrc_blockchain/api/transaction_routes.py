@@ -6,7 +6,7 @@ from typing import List, Dict
 from bhrc_blockchain.api.auth import get_current_user, verify_token
 from bhrc_blockchain.core.transaction.transaction import create_transaction
 from bhrc_blockchain.core.blockchain.blockchain import Blockchain
-from bhrc_blockchain.core.mempool.mempool import get_ready_transactions
+from bhrc_blockchain.core.mempool.mempool import get_ready_transactions, add_transaction_to_mempool
 from bhrc_blockchain.tools.confirmation_watcher import watch_transaction_confirmation
 from bhrc_blockchain.core.wallet.wallet import load_wallet
 
@@ -51,7 +51,7 @@ def send_transaction(
             tx_type="transfer"
         )
         tx["status"] = "ready"
-        blockchain.add_transaction_to_mempool(tx)
+        add_transaction_to_mempool(tx)
         background_tasks.add_task(watch_transaction_confirmation, tx["txid"], blockchain)
 
         return JSONResponse(status_code=201, content={"message": "İşlem kuyruğa alındı.", "data": {"txid": tx["txid"]}})
@@ -101,7 +101,7 @@ def simple_transfer(
         )
 
         tx["status"] = "ready"
-        blockchain.add_transaction_to_mempool(tx)
+        add_transaction_to_mempool(tx)
         background_tasks.add_task(watch_transaction_confirmation, tx["txid"], blockchain)
 
         return JSONResponse(status_code=201, content={"message": "✅ İşlem kuyruğa alındı", "data": {"txid": tx["txid"]}})

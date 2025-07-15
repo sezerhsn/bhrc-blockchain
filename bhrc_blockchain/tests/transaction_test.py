@@ -117,14 +117,19 @@ def test_validate_transaction_bad_signature():
         validate_transaction(tx)
 
 def test_validate_transaction_valid_signature():
+    recipient_wallet = MinerWallet()
+    recipient = recipient_wallet.address
+    print(f"📌 sender = {sender}")
+    print(f"📌 recipient = {recipient}")
+
     tx_time = time.time()
-    raw_msg = f"{sender}{'xBHR' + 'C'*60}10{0.1}msgnote"+"transfer0"+str(tx_time)
+    raw_msg = f"{sender}{recipient}10{0.1}msgnote"+"transfer0"+str(tx_time)
     sig = sign_message(privkey, raw_msg)
     pub = get_public_key_from_private_key(privkey)
 
     tx = {
         "sender": sender,
-        "recipient": "xBHR" + "C"*60,
+        "recipient": recipient,
         "amount": 10,
         "fee": 0.1,
         "message": "msg",
@@ -189,7 +194,11 @@ def test_verify_signature_invalid_signature():
 
 @patch("bhrc_blockchain.core.contract.contract_engine.evaluate_contract", return_value=False)
 def test_validate_transaction_contract_failure(mock_eval):
-    recipient = "xBHR" + "Z" * 60
+    recipient_wallet = MinerWallet()
+    recipient = recipient_wallet.address
+    print(f"📌 sender = {sender}")
+    print(f"📌 recipient = {recipient}")
+
     tx_time = time.time()
     raw_msg = (
         str(sender) +

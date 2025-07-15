@@ -198,37 +198,35 @@ def test_simple_transfer_explicit_exception(jwt_token, monkeypatch):
     assert response.status_code == 400
     assert "İşlem başarısız" in response.text
 
-def test_simple_transfer_observer_error(jwt_token, monkeypatch):
+def test_simple_transfer_observer_error(client, jwt_token, monkeypatch):
     headers = {"Authorization": f"Bearer {jwt_token}"}
 
-    def dummy_wallet(path):
-        return {
-            "address": "dummy",
-            "private_key": "dummy_key"
-        }
+    def dummy_wallet(path, password=None):
+        return {"address": "dummy", "private_key": "dummy_key"}
 
     def dummy_tx(*args, **kwargs):
-        return {
-            "txid": "tx123",
-            "status": "ready"
-        }
+        return {"txid": "tx123", "status": "ready"}
 
-    def fail_watcher(txid, blockchain):
+    def fail_watcher(*args, **kwargs):
         raise Exception("gözlem hatası")
 
     monkeypatch.setattr("bhrc_blockchain.api.transaction_routes.load_wallet", dummy_wallet)
     monkeypatch.setattr("bhrc_blockchain.api.transaction_routes.create_transaction", dummy_tx)
     monkeypatch.setattr("bhrc_blockchain.api.transaction_routes.watch_transaction_confirmation", fail_watcher)
 
-    payload = {
-        "to_address": "receiver",
-        "amount": 1.0,
-        "message": "gözlem testi"
-    }
+    def patched_add_task(self, func, *args, **kwargs):
+        return func(*args, **kwargs)
 
-    response = client.post("/transaction/api/transfer", json=payload, headers=headers)
+    monkeypatch.setattr("starlette.background.BackgroundTasks.add_task", patched_add_task)
+
+    response = client.post(
+        "/transaction/api/transfer",
+        json={"to_address": "bob", "amount": 10, "message": ""},
+        headers=headers
+    )
+
     assert response.status_code == 400
-    assert "İşlem başarısız" in response.text
+    assert "gözlem hatası" in response.text
 
 def test_get_transaction_history_with_chain_error(jwt_token, monkeypatch):
     headers = {"Authorization": f"Bearer {jwt_token}"}
@@ -272,13 +270,13 @@ def test_simple_transfer_watcher_exception(jwt_token, monkeypatch):
     def dummy_tx(*args, **kwargs):
         return {"txid": "txid123", "status": "ready"}
 
-    class FakeBackgroundTasks:
-        def add_task(self, func, *args, **kwargs):
-            raise Exception("gözlem hatası")
-
     monkeypatch.setattr("bhrc_blockchain.api.transaction_routes.load_wallet", dummy_wallet)
     monkeypatch.setattr("bhrc_blockchain.api.transaction_routes.create_transaction", dummy_tx)
-    monkeypatch.setattr("bhrc_blockchain.api.transaction_routes.BackgroundTasks", lambda: FakeBackgroundTasks())
+
+    def patched_add_task(self, func, *args, **kwargs):
+        raise Exception("gözlem hatası")
+
+    monkeypatch.setattr("starlette.background.BackgroundTasks.add_task", patched_add_task)
 
     payload = {
         "to_address": "abc",
@@ -288,5 +286,5 @@ def test_simple_transfer_watcher_exception(jwt_token, monkeypatch):
 
     response = client.post("/transaction/api/transfer", json=payload, headers=headers)
     assert response.status_code == 400
-    assert "İşlem başarısız" in response.text
+    assert "gözlem hatası" in response.text
 

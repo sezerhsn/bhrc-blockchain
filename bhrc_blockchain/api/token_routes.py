@@ -14,6 +14,7 @@ from bhrc_blockchain.core.blockchain.blockchain import get_blockchain
 from bhrc_blockchain.utils.utils import render_template
 from bhrc_blockchain.tools.confirmation_watcher import watch_transaction_confirmation
 from bhrc_blockchain.core.logger.logging_utils import setup_logger
+from bhrc_blockchain.core.mempool.mempool import add_transaction_to_mempool, get_transaction_from_mempool
 
 logger = setup_logger("TokenRoutes")
 router = APIRouter()
@@ -34,6 +35,8 @@ async def deploy_token(
 ):
     try:
         tx = create_token_transaction(name, symbol, total_supply, decimals, creator_address, message, signature, blockchain)
+        if not get_transaction_from_mempool(tx["txid"]):
+            add_transaction_to_mempool(tx)
         await watch_transaction_confirmation(tx["txid"], blockchain)
         return {"message": "Token oluşturma işlemi mempool'a eklendi", **tx}
     except Exception as e:
@@ -55,6 +58,8 @@ async def transfer_token(
 ):
     try:
         tx = create_token_transfer_transaction(symbol, amount, sender_address, recipient_address, message, signature, blockchain)
+        if not get_transaction_from_mempool(tx["txid"]):
+            add_transaction_to_mempool(tx)
         await watch_transaction_confirmation(tx["txid"], blockchain)
         return {"message": "Token transfer işlemi mempool'a eklendi", **tx}
     except Exception as e:

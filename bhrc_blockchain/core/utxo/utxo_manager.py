@@ -1,6 +1,8 @@
+_utxo_instance = None
+
 class UTXOManager:
     def __init__(self):
-        self.utxos = {}  # { txid_output_index: utxo_dict }
+        self.utxos = {}
 
     def add_utxos(self, txid: str, outputs: list):
         for i, output in enumerate(outputs):
@@ -9,8 +11,11 @@ class UTXOManager:
 
     def remove_utxos(self, inputs: list):
         for tx_input in inputs:
-            key = f"{tx_input['txid']}_{tx_input['index']}"
-            self.utxos.pop(key, None)
+            txid = tx_input.get("txid")
+            index = tx_input.get("index")
+            if txid is not None and index is not None:
+                key = f"{txid}_{index}"
+                self.utxos.pop(key, None)
 
     def get_utxo(self, txid: str, index: int):
         return self.utxos.get(f"{txid}_{index}")
@@ -39,3 +44,18 @@ class UTXOManager:
         self.remove_utxos(transaction.get("inputs", []))
         self.add_utxos(transaction["txid"], transaction.get("outputs", []))
 
+    @classmethod
+    def rebuild_from_chain(cls, chain):
+        global _utxo_instance
+        _utxo_instance = cls()
+        _utxo_instance.reset()
+
+        for block in chain:
+            for tx in block.transactions:
+                _utxo_instance.update_with_transaction(tx)
+
+        return _utxo_instance
+
+    @classmethod
+    def get_instance(cls):
+        return _utxo_instance

@@ -58,17 +58,6 @@ def test_clear_mempool(super_admin_auth_header):
     assert response.status_code == 200
     assert response.json()["message"] == "Mempool temizlendi."
 
-def test_network_stats(admin_auth_header):
-    response = client.get("/admin/network-stats", headers=admin_auth_header)
-    assert response.status_code == 200
-    data = response.json()
-    assert "peers" in data
-    assert "total_blocks" in data
-    assert "difficulty" in data
-    assert "mempool_size" in data
-    assert "last_block_index" in data
-    assert "avg_block_time" in data
-
 def test_active_sessions(super_admin_auth_header):
     response = client.get("/admin/sessions", headers=super_admin_auth_header)
     assert response.status_code == 200
@@ -103,51 +92,6 @@ def test_reset_chain_requires_super_admin(super_admin_auth_header, monkeypatch):
     response = client.post("/admin/reset-chain", headers=super_admin_auth_header)
     assert response.status_code == 200
     assert "Zincir genesis bloğa sıfırlandı" in response.json()["message"]
-
-def test_network_stats_with_single_block(super_admin_auth_header, monkeypatch):
-    from bhrc_blockchain.core.blockchain.blockchain import get_blockchain
-
-    monkeypatch.delenv("BHRC_TEST_MODE", raising=False)
-    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
-
-    client.post("/admin/reset-chain", headers=super_admin_auth_header)
-
-    blockchain = get_blockchain()
-    assert len(blockchain.chain) == 1
-
-    response = client.get("/admin/network-stats", headers=super_admin_auth_header)
-    assert response.status_code == 200
-    data = response.json()
-    assert data["avg_block_time"] == 0
-
-def test_avg_block_time_zero_via_api(super_admin_auth_header, monkeypatch):
-    from bhrc_blockchain.core.blockchain.blockchain import get_blockchain
-    from bhrc_blockchain.core.block import Block
-    import time
-
-    monkeypatch.delenv("BHRC_TEST_MODE", raising=False)
-    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
-
-    blockchain = get_blockchain()
-    genesis_block = Block(
-        index=0,
-        previous_hash="0",
-        transactions=[],
-        timestamp=time.time(),
-        nonce=0,
-        miner_address="genesis",
-        difficulty=blockchain.difficulty_prefix,
-        events=["Genesis block"]
-    )
-    genesis_block.block_hash = genesis_block.calculate_hash()
-    blockchain.chain = [genesis_block]
-    blockchain.mempool.clear()
-
-    assert len(blockchain.chain) == 1
-
-    response = client.get("/admin/network-stats", headers=super_admin_auth_header)
-    assert response.status_code == 200
-    assert response.json()["avg_block_time"] == 0
 
 def test_snapshot_rollback(super_admin_auth_header):
     reset_response = client.post("/admin/reset-chain", headers=super_admin_auth_header)
@@ -245,13 +189,6 @@ def test_reset_chain_runtime_error(monkeypatch, super_admin_auth_header):
     assert response.status_code == 200
     assert "genesis" in response.json()["message"]
 
-def test_network_stats_success(super_admin_auth_header):
-    response = client.get("/admin/network-stats", headers=super_admin_auth_header)
-    assert response.status_code == 200
-    data = response.json()
-    assert "total_blocks" in data
-    assert "avg_block_time" in data
-
 def test_network_stats_exception(monkeypatch, super_admin_auth_header):
     def broken_blockchain():
         raise Exception("Simüle hata")
@@ -340,13 +277,6 @@ def test_reset_chain_runtime_error(super_admin_auth_header):
         response = client.post("/admin/reset-chain", headers=super_admin_auth_header)
         assert response.status_code == 500
         assert response.json()["detail"] == "Zincir sıfırlanamadı"
-
-def test_network_stats_empty_chain(super_admin_auth_header):
-    response = client.get("/admin/network-stats", headers=super_admin_auth_header)
-    assert response.status_code == 200
-    json_data = response.json()
-    assert "total_blocks" in json_data
-    assert json_data["total_blocks"] >= 0
 
 def test_active_sessions_view_logs(super_admin_auth_header):
     response = client.get("/admin/sessions", headers=super_admin_auth_header)

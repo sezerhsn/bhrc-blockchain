@@ -42,4 +42,5 @@ build/
 # 🚫 Geçici ve bilinmeyen dosyalar
 # ======================================
 *.save
+.env
 

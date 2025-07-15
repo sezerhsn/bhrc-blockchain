@@ -45,3 +45,26 @@ def test_list_owner_nfts(jwt_token):
     data = response.json()
     assert isinstance(data["nfts"], list)
 
+def test_mint_nft_exception_path(jwt_token):
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+
+    import bhrc_blockchain.api.nft_routes as nr
+
+    def broken_mint_nft(nft_id, owner, name, desc, uri):
+        raise Exception("Simulated minting failure")
+
+    original = nr.mint_nft
+    nr.mint_nft = broken_mint_nft
+
+    try:
+        payload = {
+            "name": "Broken NFT",
+            "description": "Should fail",
+            "uri": "http://broken-uri"
+        }
+        response = client.post("/nft/mint", json=payload, headers=headers)
+        assert response.status_code == 500
+        assert "Simulated minting failure" in response.text  # ⬅️ BU ZORUNLU
+    finally:
+        nr.mint_nft = original
+

@@ -1,4 +1,3 @@
-# transaction_model.py
 from dataclasses import dataclass, field
 from typing import List, Optional
 import time
@@ -20,11 +19,13 @@ class TransactionInput:
 class TransactionOutput:
     recipient: str
     amount: float
+    locked: bool = False
 
     def to_dict(self) -> dict:
         return {
             "recipient": self.recipient,
-            "amount": self.amount
+            "amount": self.amount,
+            "locked": self.locked
         }
 
 @dataclass
@@ -45,6 +46,7 @@ class Transaction:
     script: Optional[str] = None  # ✅ YENİ
     txid: Optional[str] = None
     contract_result: Optional[dict] = None
+    status: str = "ready"
 
     def to_dict(self) -> dict:
         data = {
@@ -58,7 +60,8 @@ class Transaction:
             "locktime": self.locktime,
             "time": self.time,
             "inputs": [inp.to_dict() for inp in self.inputs],
-            "outputs": [out.to_dict() for out in self.outputs]
+            "outputs": [out.to_dict() for out in self.outputs],
+            "status": self.status,
         }
         if self.script_sig is not None:
             data["script_sig"] = self.script_sig

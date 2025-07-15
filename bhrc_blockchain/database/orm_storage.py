@@ -56,7 +56,7 @@ def save_utxos(txid, outputs, session=None):
         utxo = UTXOModel(
             txid=txid,
             output_index=idx,
-            address=out["address"],
+            address=out.get("address", out.get("recipient")),
             amount=out["amount"],
             spent=0
         )

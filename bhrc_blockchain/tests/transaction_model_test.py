@@ -5,12 +5,10 @@ def test_transaction_input_to_dict():
     result = txin.to_dict()
     assert result == {"txid": "abc123", "output_index": 0}
 
-
 def test_transaction_output_to_dict():
     txout = TransactionOutput(recipient="xBHRabc", amount=10.5)
     result = txout.to_dict()
-    assert result == {"recipient": "xBHRabc", "amount": 10.5}
-
+    assert result == {"recipient": "xBHRabc", "amount": 10.5, "locked": False}
 
 def test_transaction_to_dict_and_txid():
     tx = Transaction(
