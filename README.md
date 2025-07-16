@@ -1,3 +1,5 @@
+![Test Status](https://github.com/sezerhsn/bhrc-blockchain/actions/workflows/python-tests.yml/badge.svg)
+
 ---
 
 ## 📬 İletişim

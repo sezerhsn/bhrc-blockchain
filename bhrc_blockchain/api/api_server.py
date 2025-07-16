@@ -1,3 +1,17 @@
+# ──────────────────────────────────────────────
+
+# 🔒 This file is part of the BHRC Blockchain Project
+
+# 📛 Author: Sezer H.
+
+# 📨 Contact: sezerhsn@gmail.com
+
+# 🔗 GitHub: https://github.com/sezerhsn/bhrc-blockchain
+
+# 📜 License: MIT License (see LICENSE file for details)
+
+# ──────────────────────────────────────────────
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from bhrc_blockchain.network.notifications import websocket_connections
 from bhrc_blockchain.api.token_routes import router as token_router

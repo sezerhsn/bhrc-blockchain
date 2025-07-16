@@ -1,3 +1,17 @@
+# ──────────────────────────────────────────────
+
+# 🔒 This file is part of the BHRC Blockchain Project
+
+# 📛 Author: Sezer H.
+
+# 📨 Contact: sezerhsn@gmail.com
+
+# 🔗 GitHub: https://github.com/sezerhsn/bhrc-blockchain
+
+# 📜 License: MIT License (see LICENSE file for details)
+
+# ──────────────────────────────────────────────
+
 from fastapi import APIRouter, Request, Depends, HTTPException, Response
 from bhrc_blockchain.utils.export_utils import export_logs_to_csv, export_logs_to_pdf
 from fastapi.responses import HTMLResponse

@@ -1,3 +1,17 @@
+# ──────────────────────────────────────────────
+
+# 🔒 This file is part of the BHRC Blockchain Project
+
+# 📛 Author: Sezer H.
+
+# 📨 Contact: sezerhsn@gmail.com
+
+# 🔗 GitHub: https://github.com/sezerhsn/bhrc-blockchain
+
+# 📜 License: MIT License (see LICENSE file for details)
+
+# ──────────────────────────────────────────────
+
 from bhrc_blockchain.core.block import Block
 from bhrc_blockchain.core.logger.logger import setup_logger
 from bhrc_blockchain.core.wallet.wallet import verify_block_signature

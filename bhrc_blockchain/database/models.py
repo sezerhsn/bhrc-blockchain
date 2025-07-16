@@ -1,3 +1,17 @@
+# ──────────────────────────────────────────────
+
+# 🔒 This file is part of the BHRC Blockchain Project
+
+# 📛 Author: Sezer H.
+
+# 📨 Contact: sezerhsn@gmail.com
+
+# 🔗 GitHub: https://github.com/sezerhsn/bhrc-blockchain
+
+# 📜 License: MIT License (see LICENSE file for details)
+
+# ──────────────────────────────────────────────
+
 from sqlalchemy import Column, Integer, Float, String, Text, JSON, Boolean, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
