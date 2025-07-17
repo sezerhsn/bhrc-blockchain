@@ -15,7 +15,7 @@
 import os
 from datetime import datetime, timedelta
 from typing import Optional, Dict
-from fastapi import Depends, HTTPException, status, Request, Header
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from dotenv import load_dotenv
@@ -43,7 +43,6 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-
 def decode_access_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -51,23 +50,19 @@ def decode_access_token(token: str) -> dict:
     except JWTError:
         raise HTTPException(status_code=401, detail="Geçersiz token")
 
-
-def verify_token(
-    authorization: str = Header(default=None),
-    request: Request = None
-) -> dict:
+def verify_token(request: Request) -> dict:
     if os.getenv("BHRC_TEST_MODE") == "1" or "PYTEST_CURRENT_TEST" in os.environ:
         return {
             "sub": "admin",
             "role": "super_admin",
-            "permissions": ["clear-mempool", "active-sessions", "snapshot", "rollback", "reset-chain", "update_role", "deactivate_user", "view_logs"]
+            "permissions": list(ROLE_PERMISSIONS["super_admin"])
         }
 
     token = None
-
-    if authorization and authorization.startswith("Bearer "):
-        token = authorization.split(" ")[1]
-    elif request:
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+    else:
         token = request.cookies.get("access_token")
 
     if not token:
@@ -81,9 +76,10 @@ def verify_token(
         payload = decode_access_token(token)
         username: str = payload.get("sub")
         role: str = payload.get("role", "user")
+        permissions = payload.get("permissions", [])
         if not username:
             raise HTTPException(status_code=401, detail="Geçersiz kullanıcı bilgisi")
-        return {"sub": username, "role": role}
+        return {"sub": username, "role": role, "permissions": permissions}
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -99,16 +95,27 @@ def get_current_user(request: Request) -> dict:
             token = auth_header.split(" ")[1]
     if not token:
         raise HTTPException(status_code=401, detail="Giriş yapılmamış.")
-    return verify_token(token)
+    return verify_token(request)
 
-def admin_required(required_role: str = "admin"):
+def admin_required(required_role: str = "admin", required_permission: Optional[str] = None):
+    role_hierarchy = ["user", "admin", "super_admin"]
+
     def dependency(user: dict = Depends(verify_token)) -> dict:
-        if user.get("role") != required_role:
+        user_role = user.get("role", "user")
+        user_permissions = set(user.get("permissions", []))
+
+        if role_hierarchy.index(user_role) < role_hierarchy.index(required_role):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Bu işlem için yetkiniz yok."
+                detail="Bu işlem için yetkiniz yok (rol yetersiz)."
+            )
+        if required_permission and required_permission not in user_permissions:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"'{required_permission}' izni gerekli."
             )
         return user
+
     return dependency
 
 def get_current_admin(token: str = Depends(oauth2_scheme)):

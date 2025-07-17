@@ -35,6 +35,8 @@ ROLE_PERMISSIONS = {
     "observer": {"network_stats"},
 }
 
+router = APIRouter()
+
 def permission_required(permission: str):
     def dependency(user: dict = Depends(get_current_admin)):
         role = user.get("role", "")
@@ -62,7 +64,7 @@ def log_admin_action(action: str, user: str = "admin"):
 
 router = APIRouter()
 
-@router.post("/admin/add-fake-block")
+@router.post("/add-fake-block")
 def add_fake_block(_: dict = Depends(admin_required)):
     if settings.NETWORK != "testnet":
         raise HTTPException(status_code=403, detail="Bu işlem sadece testnet üzerinde yapılabilir.")
@@ -89,7 +91,7 @@ def add_fake_block(_: dict = Depends(admin_required)):
     log_admin_action("Test amaçlı sahte blok eklendi")
     return {"message": "Sahte blok eklendi"}
 
-@router.get("/admin/network-stats")
+@router.get("/network-stats")
 def network_stats(_: dict = Depends(admin_required)):
     try:
         blockchain = get_blockchain()
@@ -117,7 +119,7 @@ def network_stats(_: dict = Depends(admin_required)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/admin/sessions")
+@router.get("/sessions")
 def active_sessions(current_admin: str = permission_required("view_logs")):
     session = SessionLocal()
     active_logs = session.query(SessionLog).filter_by(active=True).order_by(SessionLog.login_time.desc()).limit(100).all()
@@ -129,7 +131,7 @@ def active_sessions(current_admin: str = permission_required("view_logs")):
         "login_time": log.login_time.isoformat()
     } for log in active_logs]
 
-@router.post("/admin/test-notification")
+@router.post("/test-notification")
 async def test_notification():
     await notify_admin({
         "event_type": "test_notification",
@@ -137,7 +139,7 @@ async def test_notification():
     })
     return {"status": "ok"}
 
-@router.get("/admin/logs")
+@router.get("/logs")
 def get_admin_logs(current_admin: str = permission_required("view_logs")):
     log_path = "bhrc_blockchain/logs/admin.log"
     if not os.path.exists(log_path):
@@ -151,7 +153,7 @@ def get_admin_logs(current_admin: str = permission_required("view_logs")):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Log okunamadı: {str(e)}")
 
-@router.post("/admin/undo/{undo_id}")
+@router.post("/undo/{undo_id}")
 def undo_action(undo_id: int, current_admin: str = permission_required("rollback")):
     session = SessionLocal()
     log = session.query(UndoLog).filter_by(id=undo_id).first()
@@ -180,13 +182,13 @@ def undo_action(undo_id: int, current_admin: str = permission_required("rollback
     session.commit()
     return {"status": "undo_applied", "undo_id": undo_id}
 
-@router.get("/admin/users")
+@router.get("/users")
 async def list_users():
     session = SessionLocal()
     users = session.query(User).all()
     return users
 
-@router.post("/admin/users/{user_id}/update_role")
+@router.post("/users/{user_id}/update_role")
 async def update_role(user_id: int, new_role: str = Body(...), current_admin: str = permission_required("update_role")):
     session = SessionLocal()
     user = session.query(User).filter_by(id=user_id).first()
@@ -196,7 +198,7 @@ async def update_role(user_id: int, new_role: str = Body(...), current_admin: st
     session.commit()
     return {"updated": True}
 
-@router.post("/admin/users/{user_id}/deactivate")
+@router.post("/users/{user_id}/deactivate")
 async def deactivate_user(user_id: int, current_admin: str = permission_required("deactivate_user")):
     session = SessionLocal()
     user = session.query(User).filter_by(id=user_id).first()
@@ -222,13 +224,13 @@ async def deactivate_user(user_id: int, current_admin: str = permission_required
     log_admin_action(f"Kullanıcı pasifleştirildi → ID {user_id}", user=current_admin)
     return {"deactivated": True, "undo_id": undo_log.id}
 
-@router.get("/admin/undo")
+@router.get("/undo")
 def list_undo_logs(current_admin: str = permission_required("rollback")):
     session = SessionLocal()
     logs = session.query(UndoLog).order_by(UndoLog.created_at.desc()).limit(50).all()
     return logs
 
-@router.post("/admin/reset-chain")
+@router.post("/reset-chain")
 def reset_chain(current_admin: str = permission_required("reset-chain")):
     blockchain = get_blockchain()
     try:
@@ -247,7 +249,7 @@ def reset_chain(current_admin: str = permission_required("reset-chain")):
 
     return {"message": "Zincir genesis bloğa sıfırlandı"}
 
-@router.post("/admin/clear-mempool")
+@router.post("/clear-mempool")
 def clear_mempool_route(current_admin: str = permission_required("clear-mempool")):
     clear_mempool()
     log_admin_action("Mempool temizlendi", user=current_admin)
@@ -261,7 +263,7 @@ def clear_mempool_route(current_admin: str = permission_required("clear-mempool"
 
     return {"message": "Mempool temizlendi."}
 
-@router.post("/admin/snapshot")
+@router.post("/snapshot")
 def snapshot(current_admin: str = permission_required("snapshot")):
     blockchain = get_blockchain()
     save_snapshot(blockchain, current_admin=current_admin)
@@ -288,3 +290,16 @@ def rollback_snapshot(rollback_id: str = Form(...), current_admin: str = Depends
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/update-role")
+def update_user_role(current_user: dict = Depends(admin_required("super_admin", required_permission="update_role"))):
+    return {
+        "message": "Rol güncelleme izni doğrulandı.",
+        "user": current_user.get("sub")
+    }
+
+@router.post("/deactivate")
+def deactivate_user(current_user: dict = Depends(admin_required("super_admin", required_permission="deactivate_user"))):
+    return {
+        "message": "Kullanıcı devre dışı bırakma izni doğrulandı.",
+        "user": current_user.get("sub")
+    }

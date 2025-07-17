@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 from bhrc_blockchain.api.api_server import app
 from bhrc_blockchain.api.auth import verify_token
 from bhrc_blockchain.api import auth_routes
+from bhrc_blockchain.api.auth import ROLE_PERMISSIONS
 
 client = TestClient(app)
 
@@ -65,3 +66,69 @@ def override_get_current_admin():
         "permissions": ["clear-mempool", "active-sessions", "snapshot", "rollback", "reset-chain", "update_role", "deactivate_user", "view_logs"]
     }
 
+def test_admin_action_with_super_admin_token():
+    app.dependency_overrides[verify_token] = override_verify_token
+    token = "mocktoken"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = client.get("/auth/admin-action", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["message"] == "Admin işlemi başarıyla çalıştı."
+    app.dependency_overrides = {}
+
+def test_super_admin_action_with_super_admin_token():
+    app.dependency_overrides[verify_token] = override_verify_token
+    token = "mocktoken"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = client.get("/auth/super-admin-action", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["message"] == "Super admin işlemi başarıyla çalıştı."
+    app.dependency_overrides = {}
+
+def test_super_admin_action_forbidden_to_admin():
+    def override_admin_token():
+        return {
+            "sub": "demo",
+            "role": "admin",
+            "permissions": ["active-sessions"]
+        }
+
+    app.dependency_overrides[verify_token] = override_admin_token
+    token = "mocktoken"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = client.get("/auth/super-admin-action", headers=headers)
+    assert response.status_code == 403
+    assert "yetkiniz yok" in response.json()["detail"]
+    app.dependency_overrides = {}
+
+def test_log_access_with_super_admin():
+    app.dependency_overrides[verify_token] = lambda: {
+        "sub": "admin",
+        "role": "super_admin",
+        "permissions": list(ROLE_PERMISSIONS["super_admin"])
+    }
+    response = client.get("/auth/log-access")
+    assert response.status_code == 200
+    assert "Log erişimine izin verildi" in response.json()["message"]
+    app.dependency_overrides = {}
+
+def test_log_access_with_admin_without_permission():
+    app.dependency_overrides[verify_token] = lambda: {
+        "sub": "demo",
+        "role": "admin",
+        "permissions": ["active-sessions"]
+    }
+    response = client.get("/auth/log-access")
+    assert response.status_code == 403
+    assert "view_logs" in response.json()["detail"]
+    app.dependency_overrides = {}
+
+def test_log_access_with_admin_with_permission():
+    app.dependency_overrides[verify_token] = lambda: {
+        "sub": "logadmin",
+        "role": "admin",
+        "permissions": ["view_logs"]
+    }
+    response = client.get("/auth/log-access")
+    assert response.status_code == 200
+    assert response.json()["user"] == "logadmin"
+    app.dependency_overrides = {}

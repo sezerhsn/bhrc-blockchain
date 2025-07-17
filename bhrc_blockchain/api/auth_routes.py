@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Response, Request
 from fastapi.responses import JSONResponse
 from typing import Dict
 from pydantic import BaseModel
-from bhrc_blockchain.api.auth import create_access_token, get_current_user, get_current_admin
+from bhrc_blockchain.api.auth import create_access_token, get_current_user, get_current_admin, admin_required
 from bhrc_blockchain.core.logger.logging_utils import setup_logger
 from bhrc_blockchain.database.database import SessionLocal
 from bhrc_blockchain.database.models import SessionLog, User
@@ -97,4 +97,27 @@ def logout(current_user: dict = Depends(get_current_admin)):
 @router.get("/status")
 def auth_status():
     return {"status": "Auth sistemi aktif", "login_required": True}
+
+@router.get("/admin-action")
+def protected_admin_action(current_user: dict = Depends(admin_required("admin"))):
+    return {
+        "message": "Admin işlemi başarıyla çalıştı.",
+        "username": current_user.get("sub"),
+        "role": current_user.get("role")
+    }
+
+@router.get("/super-admin-action")
+def protected_super_admin_action(current_user: dict = Depends(admin_required("super_admin"))):
+    return {
+        "message": "Super admin işlemi başarıyla çalıştı.",
+        "username": current_user.get("sub"),
+        "role": current_user.get("role")
+    }
+
+@router.get("/log-access")
+def view_logs_permission_check(current_user: dict = Depends(admin_required("admin", required_permission="view_logs"))):
+    return {
+        "message": "Log erişimine izin verildi",
+        "user": current_user.get("sub")
+    }
 

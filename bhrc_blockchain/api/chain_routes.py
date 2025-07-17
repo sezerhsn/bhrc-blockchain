@@ -14,9 +14,9 @@
 
 import sqlite3
 import os
-from bhrc_blockchain.core.mempool.mempool import get_ready_transactions
+from bhrc_blockchain.core.mempool.mempool import get_ready_transactions, clear_mempool
 from bhrc_blockchain.network.p2p import connected_peers
-from fastapi import APIRouter, Request, Query, HTTPException
+from fastapi import APIRouter, Request, Query, HTTPException, Depends
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -25,9 +25,12 @@ from bhrc_blockchain.core.blockchain.blockchain import Blockchain
 from datetime import datetime
 from collections import defaultdict
 from bhrc_blockchain.core.block import Block
+from bhrc_blockchain.api.auth import admin_required
 
 router = APIRouter()
+
 templates = Jinja2Templates(directory="bhrc_blockchain/templates")
+
 blockchain = Blockchain()
 
 class APIResponse(BaseModel):
@@ -59,7 +62,7 @@ async def mine_block():
 
 
 @router.get(
-    "/chain",
+    "/",
     summary="Zinciri getir",
     description="Tüm blok zincirini JSON formatında döndürür.",
     response_model=APIResponse,
@@ -97,12 +100,12 @@ def get_blocks_by_miner(address: str):
         }
     raise HTTPException(status_code=404, detail="Bu madenciye ait blok bulunamadı.")
 
-@router.get("/chain/stats", summary="Zincir istatistiklerini getir")
+@router.get("/stats", summary="Zincir istatistiklerini getir")
 def get_chain_stats():
     stats = blockchain.get_chain_stats()
     return {"message": "Zincir istatistikleri", "data": stats}
 
-@router.get("/chain/detect/fork", summary="Zincirde çatallanma var mı?")
+@router.get("/detect/fork", summary="Zincirde çatallanma var mı?")
 def detect_fork():
     result = blockchain.detect_fork()
     return {"message": "Fork tespiti yapıldı.", "data": {"fork_detected": result}}
@@ -112,27 +115,27 @@ def get_last_block():
     block = blockchain.get_last_block()
     return {"message": "Son blok getirildi.", "data": block.to_dict()}
 
-@router.get("/chain/tx/count", summary="Toplam işlem sayısını getir")
+@router.get("/tx/count", summary="Toplam işlem sayısını getir")
 def get_total_transaction_count():
     count = blockchain.get_total_transaction_count()
     return {"message": "Toplam işlem sayısı getirildi.", "data": {"count": count}}
 
-@router.get("/chain/validate", summary="Zincir bütünlüğünü doğrula")
+@router.get("/validate", summary="Zincir bütünlüğünü doğrula")
 def validate_chain():
     is_valid = blockchain.validate_chain()
     return {"message": "Zincir bütünlüğü kontrol edildi.", "data": {"valid": is_valid}}
 
-@router.get("/chain/time/stats", summary="Bloklar arası zaman istatistikleri")
+@router.get("/time/stats", summary="Bloklar arası zaman istatistikleri")
 def get_block_time_stats():
     stats = blockchain.get_block_time_stats()
     return {"message": "Zaman istatistikleri hesaplandı.", "data": stats}
 
-@router.get("/chain/snapshot/hash", summary="Zincirin hash özetini getir")
+@router.get("/snapshot/hash", summary="Zincirin hash özetini getir")
 def get_chain_snapshot_hash():
     hash_ = blockchain.get_chain_snapshot_hash()
     return {"message": "Zincir snapshot hash üretildi.", "data": {"hash": hash_}}
 
-@router.get("/chain/fork/blocks", summary="Çatallanan blokları getir")
+@router.get("/fork/blocks", summary="Çatallanan blokları getir")
 def get_fork_blocks():
     blocks = blockchain.get_fork_blocks()
     return {
@@ -140,7 +143,7 @@ def get_fork_blocks():
         "data": [b.to_dict() for b in blocks]
     }
 
-@router.get("/chain/detect/reorg", summary="Zincirde reorg olmuş mu?")
+@router.get("/detect/reorg", summary="Zincirde reorg olmuş mu?")
 def detect_reorg(max_depth: int = Query(5, ge=1, le=50)):
     result = blockchain.detect_reorg(max_depth=max_depth)
     return {"message": f"Reorg analizi (max_depth={max_depth}) tamamlandı.", "data": {"reorg_detected": result}}
@@ -265,10 +268,6 @@ def dashboard_data():
 def websocket_test(request: Request):
     return templates.TemplateResponse("notifications_test.html", {"request": request})
 
-@router.get("/notifications/subscribe", response_class=HTMLResponse)
-def websocket_subscriber_ui(request: Request):
-    return templates.TemplateResponse("notifications_subscriber.html", {"request": request})
-
 @router.get("/notifications/subscribe", response_class=HTMLResponse, summary="Kişisel adres bildirim arayüzü")
 def websocket_subscriber_ui(request: Request):
     return templates.TemplateResponse("notifications_subscriber.html", {"request": request})
@@ -359,3 +358,33 @@ def sync_chain(request: Request, payload: Dict):
         return {"message": "⚖️ Zincir güncellenmedi. Daha ağır değil veya geçersiz."}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Sync hatası: {str(e)}")
+
+@router.post("/reset")
+def reset_chain(current_user: dict = Depends(admin_required("super_admin", required_permission="reset-chain"))):
+    return {
+        "message": "Zincir sıfırlama yetkisi doğrulandı.",
+        "user": current_user.get("sub")
+    }
+
+@router.post("/rollback")
+def rollback_chain(current_user: dict = Depends(admin_required("super_admin", required_permission="rollback"))):
+    return {
+        "message": "Rollback izni doğrulandı.",
+        "user": current_user.get("sub")
+    }
+
+@router.get("/snapshot-access")
+def snapshot_access(current_user: dict = Depends(admin_required("super_admin", required_permission="snapshot"))):
+    return {
+        "message": "Snapshot erişimi zincir modülünden verildi.",
+        "user": current_user.get("sub")
+    }
+
+@router.post("/clear-mempool")
+def clear_mempool_endpoint(current_user: dict = Depends(admin_required("super_admin", required_permission="clear-mempool"))):
+    clear_mempool()
+    return {
+        "message": "Mempool başarıyla temizlendi.",
+        "user": current_user.get("sub")
+    }
+

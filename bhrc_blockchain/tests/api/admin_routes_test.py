@@ -6,7 +6,7 @@ from unittest.mock import patch
 from pathlib import Path
 from fastapi.testclient import TestClient
 from bhrc_blockchain.api.api_server import app
-from bhrc_blockchain.api.auth import create_access_token
+from bhrc_blockchain.api.auth import create_access_token, verify_token, ROLE_PERMISSIONS
 from bhrc_blockchain.database.models import User
 from bhrc_blockchain.database.database import Session
 from bhrc_blockchain.api import admin_routes
@@ -106,7 +106,7 @@ def test_snapshot_rollback(super_admin_auth_header):
     }
 
     rollback_response = client.post(
-        "/snapshot-rollback",
+        "/admin/snapshot-rollback",
         data={"rollback_id": "snapshot.json"},
         headers=headers
     )
@@ -213,7 +213,7 @@ def test_snapshot_rollback_success(super_admin_auth_header):
     }
 
     response = client.post(
-        "/snapshot-rollback",
+        "/admin/snapshot-rollback",
         data={"rollback_id": snapshot_name},
         headers=headers
     )
@@ -227,7 +227,7 @@ def test_snapshot_rollback_bad_request(super_admin_auth_header):
         "Content-Type": "application/x-www-form-urlencoded"
     }
 
-    response = client.post("/snapshot-rollback", headers=headers)
+    response = client.post("/admin/snapshot-rollback", headers=headers)
 
     assert response.status_code == 422
 
@@ -238,7 +238,7 @@ def test_snapshot_rollback_exception(monkeypatch, super_admin_auth_header):
     monkeypatch.setattr("bhrc_blockchain.api.admin_routes.load_snapshot", mock_load_snapshot)
 
     response = client.post(
-        "/snapshot-rollback",
+        "/admin/snapshot-rollback",
         data={"rollback_id": "invalid_snapshot"},
         headers=super_admin_auth_header
     )
@@ -677,3 +677,68 @@ def test_admin_logs_with_invalid_json(monkeypatch, super_admin_auth_header):
     assert response.status_code == 500
     assert "Log okunamadı" in response.json()["detail"]
 
+def test_update_role_allowed_for_super_admin():
+    app.dependency_overrides[verify_token] = lambda: {
+        "sub": "superupdater",
+        "role": "super_admin",
+        "permissions": list(ROLE_PERMISSIONS["super_admin"])
+    }
+    res = client.post("/admin/update-role")
+    assert res.status_code == 200
+    assert "Rol güncelleme izni" in res.json()["message"]
+    app.dependency_overrides = {}
+
+def test_update_role_denied_missing_permission():
+    app.dependency_overrides[verify_token] = lambda: {
+        "sub": "semiadmin",
+        "role": "super_admin",
+        "permissions": ["deactivate_user"]
+    }
+    res = client.post("/admin/update-role")
+    assert res.status_code == 403
+    assert "update_role" in res.json()["detail"]
+    app.dependency_overrides = {}
+
+def test_update_role_denied_for_admin():
+    app.dependency_overrides[verify_token] = lambda: {
+        "sub": "adminlow",
+        "role": "admin",
+        "permissions": ["update_role"]
+    }
+    res = client.post("/admin/update-role")
+    assert res.status_code == 403
+    assert "yetkiniz yok" in res.json()["detail"]
+    app.dependency_overrides = {}
+
+def test_deactivate_user_allowed_for_super_admin():
+    app.dependency_overrides[verify_token] = lambda: {
+        "sub": "superkiller",
+        "role": "super_admin",
+        "permissions": list(ROLE_PERMISSIONS["super_admin"])
+    }
+    res = client.post("/admin/deactivate")
+    assert res.status_code == 200
+    assert "devre dışı bırakma" in res.json()["message"]
+    app.dependency_overrides = {}
+
+def test_deactivate_user_denied_missing_permission():
+    app.dependency_overrides[verify_token] = lambda: {
+        "sub": "notkiller",
+        "role": "super_admin",
+        "permissions": ["update_role"]
+    }
+    res = client.post("/admin/deactivate")
+    assert res.status_code == 403
+    assert "deactivate_user" in res.json()["detail"]
+    app.dependency_overrides = {}
+
+def test_deactivate_user_denied_for_admin():
+    app.dependency_overrides[verify_token] = lambda: {
+        "sub": "adminx",
+        "role": "admin",
+        "permissions": ["deactivate_user"]
+    }
+    res = client.post("/admin/deactivate")
+    assert res.status_code == 403
+    assert "yetkiniz yok" in res.json()["detail"]
+    app.dependency_overrides = {}
